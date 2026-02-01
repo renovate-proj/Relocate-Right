@@ -1,0 +1,1 @@
+export const DBname="Fazal_db";
