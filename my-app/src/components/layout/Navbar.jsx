@@ -25,7 +25,7 @@ export default function Navbar() {
                 key={item}
                 href={item === 'Home' ? '/' : `/${item.toLowerCase()}`}
                 className="text-slate-700 hover:text-[#1A56DB] font-medium transition-colors duration-200 relative group"
-              >
+              >gen
                 {item}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#1A56DB] to-[#7E3AF2] group-hover:w-full transition-all duration-300"></span>
               </Link>

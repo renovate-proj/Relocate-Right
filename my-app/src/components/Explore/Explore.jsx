@@ -15,14 +15,17 @@ import {
   X,
   TrendingUp,
   BarChart3,
-  Menu
+  Menu,
+  ExternalLink
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 // Mock Mumbai neighborhood data
 const MUMBAI_NEIGHBORHOODS = [
   {
     id: 1,
     name: 'Bandra West',
+    slug: 'bandra-west',
     coordinates: [19.0596, 72.8281],
     bounds: [
       [19.0496, 72.8181],
@@ -41,11 +44,19 @@ const MUMBAI_NEIGHBORHOODS = [
       crimeRate: 'Low',
       transitScore: 'Excellent',
       walkScore: 92
-    }
+    },
+    description: 'A vibrant suburb known for its trendy cafes, nightlife, and proximity to the sea.',
+    population: 'Approx. 350,000',
+    landmarks: ['Bandra-Worli Sea Link', 'Mount Mary Church', 'Carter Road Promenade'],
+    popularResidentialAreas: ['Pali Hill', 'Union Park', 'Waroda Road'],
+    transportHubs: ['Bandra Station (Western Line)', 'Bandra Bus Depot'],
+    avgPropertyPrice: '₹4.5 - 6 Crores',
+    famousFor: ['Celebrity residences', 'Boutique cafes', 'Art galleries', 'Weekend markets']
   },
   {
     id: 2,
     name: 'Andheri East',
+    slug: 'andheri-east',
     coordinates: [19.1136, 72.8697],
     bounds: [
       [19.1036, 72.8597],
@@ -64,11 +75,19 @@ const MUMBAI_NEIGHBORHOODS = [
       crimeRate: 'Moderate',
       transitScore: 'Very Good',
       walkScore: 78
-    }
+    },
+    description: 'Commercial hub with excellent connectivity, corporate offices, and modern residential complexes.',
+    population: 'Approx. 450,000',
+    landmarks: ['Chhatrapati Shivaji International Airport', 'Saki Naka', 'Metro Station'],
+    popularResidentialAreas: ['Marol', 'Saki Naka', 'Chakala'],
+    transportHubs: ['Andheri Station (Western & Metro)', 'Airport Terminal'],
+    avgPropertyPrice: '₹2.5 - 4 Crores',
+    famousFor: ['Corporate offices', 'Industrial areas', 'Budget hotels', 'International airport proximity']
   },
   {
     id: 3,
     name: 'Powai',
+    slug: 'powai',
     coordinates: [19.1176, 72.9050],
     bounds: [
       [19.1076, 72.8950],
@@ -87,11 +106,19 @@ const MUMBAI_NEIGHBORHOODS = [
       crimeRate: 'Very Low',
       transitScore: 'Good',
       walkScore: 75
-    }
+    },
+    description: 'Prestigious educational and corporate hub with beautiful lakeside views and modern infrastructure.',
+    population: 'Approx. 250,000',
+    landmarks: ['Powai Lake', 'IIT Bombay', 'Hiranandani Gardens'],
+    popularResidentialAreas: ['Hiranandani Complex', 'L&T Colony', 'Tirandaz'],
+    transportHubs: ['Powai Metro Station', 'Kanjurmarg Station'],
+    avgPropertyPrice: '₹3.5 - 5 Crores',
+    famousFor: ['IIT Bombay', 'Tech parks', 'Luxury apartments', 'Lake view properties']
   },
   {
     id: 4,
     name: 'Colaba',
+    slug: 'colaba',
     coordinates: [18.9067, 72.8147],
     bounds: [
       [18.8967, 72.8047],
@@ -110,11 +137,19 @@ const MUMBAI_NEIGHBORHOODS = [
       crimeRate: 'Low',
       transitScore: 'Good',
       walkScore: 88
-    }
+    },
+    description: 'Historic peninsula area with colonial architecture, luxury boutiques, and waterfront views.',
+    population: 'Approx. 120,000',
+    landmarks: ['Gateway of India', 'Taj Mahal Palace Hotel', 'Colaba Causeway'],
+    popularResidentialAreas: ['Cuffe Parade', 'Apollo Bandar', 'Navy Nagar'],
+    transportHubs: ['CST Station', 'Colaba Bus Terminus'],
+    avgPropertyPrice: '₹6 - 10 Crores',
+    famousFor: ['Heritage buildings', 'Luxury hotels', 'Art galleries', 'Fine dining restaurants']
   },
   {
     id: 5,
     name: 'Malad West',
+    slug: 'malad-west',
     coordinates: [19.1875, 72.8397],
     bounds: [
       [19.1775, 72.8297],
@@ -133,11 +168,19 @@ const MUMBAI_NEIGHBORHOODS = [
       crimeRate: 'Moderate',
       transitScore: 'Very Good',
       walkScore: 70
-    }
+    },
+    description: 'Residential suburb with good amenities, shopping complexes, and growing infrastructure.',
+    population: 'Approx. 500,000',
+    landmarks: ['Malad Creek', 'Inorbit Mall', 'Orchid City'],
+    popularResidentialAreas: ['Kandivali Link Road', 'Evershine Nagar', 'Chincholi Bunder'],
+    transportHubs: ['Malad Station (Western Line)', 'Mindspace Junction'],
+    avgPropertyPrice: '₹1.8 - 3 Crores',
+    famousFor: ['Shopping malls', 'Affordable housing', 'Beach proximity', 'Educational institutes']
   },
   {
     id: 6,
     name: 'Lower Parel',
+    slug: 'lower-parel',
     coordinates: [18.9956, 72.8311],
     bounds: [
       [18.9856, 72.8211],
@@ -156,11 +199,19 @@ const MUMBAI_NEIGHBORHOODS = [
       crimeRate: 'Low',
       transitScore: 'Excellent',
       walkScore: 85
-    }
+    },
+    description: 'Transformed textile mill area now a prime commercial and residential hub with luxury developments.',
+    population: 'Approx. 150,000',
+    landmarks: ['High Street Phoenix', 'One International Centre', 'Palladium'],
+    popularResidentialAreas: ['Phoenix Mills Compound', 'Kamala Mills', 'Todi Mills'],
+    transportHubs: ['Lower Parel Station', 'Elphinstone Road Station'],
+    avgPropertyPrice: '₹5 - 8 Crores',
+    famousFor: ['Luxury shopping', 'Corporate headquarters', 'Fine dining', 'Nightlife']
   },
   {
     id: 7,
     name: 'Thane West',
+    slug: 'thane-west',
     coordinates: [19.2183, 72.9781],
     bounds: [
       [19.2083, 72.9681],
@@ -179,11 +230,19 @@ const MUMBAI_NEIGHBORHOODS = [
       crimeRate: 'Moderate',
       transitScore: 'Good',
       walkScore: 68
-    }
+    },
+    description: 'Rapidly developing area with good infrastructure, affordability, and growing commercial spaces.',
+    population: 'Approx. 1,200,000',
+    landmarks: ['Upvan Lake', 'Talao Pali', 'Viviana Mall'],
+    popularResidentialAreas: ['Hiranandani Estate', 'Waghbil', 'Kopri'],
+    transportHubs: ['Thane Station (Central Line)', 'Metro Station'],
+    avgPropertyPrice: '₹1.5 - 2.5 Crores',
+    famousFor: ['Lakes', 'Affordable luxury', 'Educational institutes', 'Shopping malls']
   },
   {
     id: 8,
     name: 'Worli',
+    slug: 'worli',
     coordinates: [19.0176, 72.8169],
     bounds: [
       [19.0076, 72.8069],
@@ -202,11 +261,19 @@ const MUMBAI_NEIGHBORHOODS = [
       crimeRate: 'Very Low',
       transitScore: 'Excellent',
       walkScore: 90
-    }
+    },
+    description: 'Premium residential and commercial area with sea-facing properties and high-end lifestyle.',
+    population: 'Approx. 100,000',
+    landmarks: ['Worli Sea Face', 'Nehru Centre', 'Worli Fort', 'Bandra-Worli Sea Link'],
+    popularResidentialAreas: ['Worli Sea Face', 'Babulnath', 'Atria Mall Area'],
+    transportHubs: ['Worli Naka', 'Sea Link Access'],
+    avgPropertyPrice: '₹8 - 15 Crores',
+    famousFor: ['Sea views', 'Celebrity homes', 'Corporate offices', 'Luxury apartments']
   },
   {
     id: 9,
     name: 'Goregaon East',
+    slug: 'goregaon-east',
     coordinates: [19.1653, 72.8697],
     bounds: [
       [19.1553, 72.8597],
@@ -225,11 +292,19 @@ const MUMBAI_NEIGHBORHOODS = [
       crimeRate: 'Moderate',
       transitScore: 'Very Good',
       walkScore: 72
-    }
+    },
+    description: 'Mixed residential and commercial area with film industry presence and green spaces.',
+    population: 'Approx. 350,000',
+    landmarks: ['Film City', 'Aarey Colony', 'Oberoi Mall'],
+    popularResidentialAreas: ['Oberoi Garden City', 'Aarey Colony', 'Goregaon Link Road'],
+    transportHubs: ['Goregaon Station (Western Line)', 'Metro Station'],
+    avgPropertyPrice: '₹2 - 3.5 Crores',
+    famousFor: ['Film City', 'Green spaces', 'Shopping malls', 'Affordable housing']
   },
   {
     id: 10,
     name: 'Juhu',
+    slug: 'juhu',
     coordinates: [19.1075, 72.8267],
     bounds: [
       [19.0975, 72.8167],
@@ -248,10 +323,16 @@ const MUMBAI_NEIGHBORHOODS = [
       crimeRate: 'Low',
       transitScore: 'Good',
       walkScore: 80
-    }
+    },
+    description: 'Beachfront suburb popular with Bollywood celebrities, offering luxury living and entertainment.',
+    population: 'Approx. 220,000',
+    landmarks: ['Juhu Beach', 'Prithvi Theatre', 'ISKCON Temple'],
+    popularResidentialAreas: ['Juhu Scheme', 'Juhu Tara Road', 'Gulmohar Road'],
+    transportHubs: ['Vile Parle Station', 'Juhu Aerodrome'],
+    avgPropertyPrice: '₹6 - 9 Crores',
+    famousFor: ['Beach promenade', 'Bollywood celebrities', 'Luxury hotels', 'Street food']
   }
 ];
-
 // Zustand Store
 const useMapStore = create((set) => ({
   mapView: {
@@ -335,7 +416,6 @@ const ComparisonDrawer = ({ isOpen, onClose }) => {
         style={{ maxHeight: '75vh', borderTopLeftRadius: '24px', borderTopRightRadius: '24px' }}
       >
         <div className="relative h-full flex flex-col">
-          {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-slate-700">
             <div className="flex items-center gap-3">
               <BarChart3 className="w-6 h-6 text-amber-500" />
@@ -351,7 +431,6 @@ const ComparisonDrawer = ({ isOpen, onClose }) => {
             </button>
           </div>
 
-          {/* Content */}
           <div className="flex-1 overflow-auto p-6">
             {comparisonList.length === 0 ? (
               <div className="text-center py-12">
@@ -412,7 +491,6 @@ const ComparisonDrawer = ({ isOpen, onClose }) => {
         </div>
       </div>
       
-      {/* Backdrop */}
       <div 
         className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -423,14 +501,27 @@ const ComparisonDrawer = ({ isOpen, onClose }) => {
   );
 };
 
+// Custom Label Icon Class
+class CustomLabelIcon extends L.DivIcon {
+  createIcon(oldIcon) {
+    const div = super.createIcon(oldIcon);
+    div.style.pointerEvents = 'auto';
+    div.style.cursor = 'pointer';
+    div.style.zIndex = '1000';
+    return div;
+  }
+}
+
 // Main Component
 export default function RelocationMapPage() {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const polygonsRef = useRef({});
+  const labelsRef = useRef({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [hoveredNeighborhood, setHoveredNeighborhood] = useState(null);
+  const router = useRouter();
   
   const {
     preferences,
@@ -447,6 +538,12 @@ export default function RelocationMapPage() {
     setCommuteTime
   } = useMapStore();
 
+  const navigateToAreaDetails = (neighborhood) => {
+    if (neighborhood?.slug) {
+      router.push(`/areas/${neighborhood.slug}`);
+    }
+  };
+
   // Initialize Leaflet Map
   useEffect(() => {
     if (map.current) return;
@@ -455,33 +552,18 @@ export default function RelocationMapPage() {
     map.current = L.map(mapContainer.current, {
       center: [19.0760, 72.8777],
       zoom: 11,
-      zoomControl: true
+      zoomControl: true,
+      preferCanvas: true // Better performance
     });
 
-    // Add OpenStreetMap tiles (completely free!)
+    // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
     }).addTo(map.current);
 
-    // Alternative free tile providers you can use:
-    // 1. CartoDB Positron (light theme)
-    // L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    //   attribution: '&copy; OpenStreetMap &copy; CartoDB',
-    //   maxZoom: 19
-    // }).addTo(map.current);
-
-    // 2. CartoDB Dark Matter (dark theme)
-    // L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    //   attribution: '&copy; OpenStreetMap &copy; CartoDB',
-    //   maxZoom: 19
-    // }).addTo(map.current);
-
-    // 3. Stamen Terrain
-    // L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png', {
-    //   attribution: 'Map tiles by Stamen Design, CC BY 3.0 &mdash; Map data &copy; OpenStreetMap',
-    //   maxZoom: 18
-    // }).addTo(map.current);
+    // Create a separate layer group for labels to control z-index
+    const labelLayer = L.layerGroup().addTo(map.current);
 
     // Add neighborhood polygons
     MUMBAI_NEIGHBORHOODS.forEach(neighborhood => {
@@ -489,30 +571,43 @@ export default function RelocationMapPage() {
         color: '#1e293b',
         weight: 2,
         fillColor: '#3b82f6',
-        fillOpacity: 0.3
+        fillOpacity: 0.3,
+        className: 'neighborhood-polygon'
       }).addTo(map.current);
 
-      // Add click event
-      polygon.on('click', () => {
-        setSelectedNeighborhood(neighborhood);
-        map.current.flyTo(neighborhood.coordinates, 13);
-        
-        // Reset all polygons
-        Object.values(polygonsRef.current).forEach(p => {
-          p.setStyle({
-            fillColor: '#3b82f6',
-            fillOpacity: 0.3
+      // Single click handler with debounce
+      let clickTimer;
+      polygon.on('click', (e) => {
+        e.originalEvent.stopPropagation();
+        clearTimeout(clickTimer);
+        clickTimer = setTimeout(() => {
+          setSelectedNeighborhood(neighborhood);
+          map.current.flyTo(neighborhood.coordinates, 13);
+          
+          // Reset all polygons
+          Object.values(polygonsRef.current).forEach(p => {
+            p.setStyle({
+              fillColor: '#3b82f6',
+              fillOpacity: 0.3
+            });
           });
-        });
-        
-        // Highlight selected
-        polygon.setStyle({
-          fillColor: '#f59e0b',
-          fillOpacity: 0.5
-        });
+          
+          // Highlight selected
+          polygon.setStyle({
+            fillColor: '#f59e0b',
+            fillOpacity: 0.5
+          });
+        }, 200);
       });
 
-      // Add hover events
+      // Double-click for details
+      polygon.on('dblclick', (e) => {
+        e.originalEvent.stopPropagation();
+        clearTimeout(clickTimer);
+        navigateToAreaDetails(neighborhood);
+      });
+
+      // Hover effects
       polygon.on('mouseover', () => {
         setHoveredNeighborhood(neighborhood);
         if (!selectedNeighborhood || selectedNeighborhood.id !== neighborhood.id) {
@@ -533,33 +628,120 @@ export default function RelocationMapPage() {
         }
       });
 
-      // Add label
-      const label = L.marker(neighborhood.coordinates, {
-        icon: L.divIcon({
-          className: 'neighborhood-label',
-          html: `<div style="
-            background: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 12px;
-            color: #1e293b;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            white-space: nowrap;
-          ">${neighborhood.name}</div>`,
-          iconSize: [100, 40],
-          iconAnchor: [50, 20]
-        })
-      }).addTo(map.current);
-
       polygonsRef.current[neighborhood.id] = polygon;
+
+      // Create label as a custom divIcon with better styling
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'neighborhood-label';
+      labelDiv.innerHTML = `
+        <div style="
+          background: white;
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-weight: 700;
+          font-size: 12px;
+          color: #1e293b;
+          box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+          white-space: nowrap;
+          border: 2px solid transparent;
+          transition: all 0.2s ease;
+          cursor: pointer;
+          user-select: none;
+          font-family: 'Montserrat', sans-serif;
+        ">
+          ${neighborhood.name}
+        </div>
+      `;
+
+      // Create label using custom icon class
+      const labelIcon = new CustomLabelIcon({
+        html: labelDiv,
+        className: 'custom-label-icon',
+        iconSize: [100, 40],
+        iconAnchor: [50, 20]
+      });
+
+      const label = L.marker(neighborhood.coordinates, {
+        icon: labelIcon,
+        interactive: true,
+        bubblingMouseEvents: false, // Prevent event bubbling to map
+        zIndexOffset: 1000 // Ensure labels stay on top
+      }).addTo(labelLayer);
+
+      // Add click handler to label
+      label.on('click', (e) => {
+        e.originalEvent.stopPropagation();
+        e.originalEvent.preventDefault();
+        navigateToAreaDetails(neighborhood);
+      });
+
+      // Add hover effects to label
+      label.on('mouseover', (e) => {
+        e.originalEvent.stopPropagation();
+        const element = label.getElement();
+        if (element) {
+          const innerDiv = element.querySelector('div');
+          if (innerDiv) {
+            innerDiv.style.background = '#f59e0b';
+            innerDiv.style.color = '#1e293b';
+            innerDiv.style.transform = 'scale(1.1)';
+            innerDiv.style.boxShadow = '0 5px 15px rgba(245, 158, 11, 0.4)';
+            innerDiv.style.borderColor = '#f59e0b';
+          }
+        }
+      });
+
+      label.on('mouseout', (e) => {
+        e.originalEvent.stopPropagation();
+        const element = label.getElement();
+        if (element) {
+          const innerDiv = element.querySelector('div');
+          if (innerDiv) {
+            innerDiv.style.background = 'white';
+            innerDiv.style.color = '#1e293b';
+            innerDiv.style.transform = 'scale(1)';
+            innerDiv.style.boxShadow = '0 3px 6px rgba(0,0,0,0.16)';
+            innerDiv.style.borderColor = 'transparent';
+          }
+        }
+      });
+
+      labelsRef.current[neighborhood.id] = label;
     });
+
+    // Add click event to map to clear selection
+    map.current.on('click', (e) => {
+      // Only clear if clicking directly on map (not on polygon or label)
+      if (e.originalEvent.target.className === 'leaflet-container' || 
+          e.originalEvent.target.className === 'leaflet-pane leaflet-map-pane') {
+        Object.values(polygonsRef.current).forEach(polygon => {
+          polygon.setStyle({
+            fillColor: '#3b82f6',
+            fillOpacity: 0.3
+          });
+        });
+        setSelectedNeighborhood(null);
+      }
+    });
+
+    // Force labels to stay on top
+    setTimeout(() => {
+      Object.values(labelsRef.current).forEach(label => {
+        const element = label.getElement();
+        if (element) {
+          element.style.zIndex = '1000';
+          element.style.pointerEvents = 'auto';
+        }
+      });
+    }, 100);
 
     return () => {
       if (map.current) {
         map.current.remove();
         map.current = null;
       }
+      polygonsRef.current = {};
+      labelsRef.current = {};
     };
   }, []);
 
@@ -606,7 +788,6 @@ export default function RelocationMapPage() {
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-slate-950">
-      {/* Mobile Menu Button */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-3 bg-slate-900 border border-amber-500/30 rounded-xl shadow-xl hover:bg-slate-800 transition-all"
@@ -614,7 +795,6 @@ export default function RelocationMapPage() {
         <Menu className="w-6 h-6 text-amber-500" />
       </button>
 
-      {/* Sidebar */}
       <div
         className={`fixed top-0 left-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r-4 border-amber-500 shadow-2xl z-40 transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -622,7 +802,6 @@ export default function RelocationMapPage() {
         style={{ width: '400px' }}
       >
         <div className="h-full flex flex-col p-6 overflow-y-auto">
-          {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-black text-white mb-2" style={{ fontFamily: 'Montserrat, sans-serif', letterSpacing: '-0.02em' }}>
               Mumbai
@@ -631,7 +810,6 @@ export default function RelocationMapPage() {
             <p className="text-slate-400 text-sm">Find your perfect neighborhood</p>
           </div>
 
-          {/* Search Bar */}
           <div className="mb-8">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
@@ -643,7 +821,6 @@ export default function RelocationMapPage() {
             </div>
           </div>
 
-          {/* Preferences */}
           <div className="mb-8">
             <h3 className="text-lg font-bold text-white mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>
               Your Preferences
@@ -680,7 +857,6 @@ export default function RelocationMapPage() {
             </div>
           </div>
 
-          {/* Commute Settings */}
           <div className="mb-8">
             <h3 className="text-lg font-bold text-white mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>
               Commute Settings
@@ -688,7 +864,6 @@ export default function RelocationMapPage() {
             
             <button
               onClick={() => {
-                // Mock work location setting
                 setWorkLocation([19.0760, 72.8777]);
               }}
               className="w-full mb-4 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
@@ -751,12 +926,20 @@ export default function RelocationMapPage() {
             )}
           </div>
 
-          {/* Selected Neighborhood */}
           {selectedNeighborhood && (
             <div className="mb-6 p-4 bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/30 rounded-xl">
-              <h3 className="text-xl font-bold text-white mb-3" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                {selectedNeighborhood.name}
-              </h3>
+              <div className="flex justify-between items-start mb-3">
+                <h3 className="text-xl font-bold text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                  {selectedNeighborhood.name}
+                </h3>
+                <button
+                  onClick={() => navigateToAreaDetails(selectedNeighborhood)}
+                  className="p-2 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-lg transition-all"
+                  title="View Area Details"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </button>
+              </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Match Score</span>
@@ -775,17 +958,25 @@ export default function RelocationMapPage() {
                   <span className="text-white font-semibold">{selectedNeighborhood.metrics.transitScore}</span>
                 </div>
               </div>
-              <button
-                onClick={() => addToComparison(selectedNeighborhood)}
-                className="w-full mt-4 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-lg transition-all text-sm"
-                disabled={comparisonList.length >= 4 || comparisonList.find(n => n.id === selectedNeighborhood.id)}
-              >
-                {comparisonList.find(n => n.id === selectedNeighborhood.id) ? 'Already in Comparison' : 'Add to Compare'}
-              </button>
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => addToComparison(selectedNeighborhood)}
+                  className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-lg transition-all text-sm"
+                  disabled={comparisonList.length >= 4 || comparisonList.find(n => n.id === selectedNeighborhood.id)}
+                >
+                  {comparisonList.find(n => n.id === selectedNeighborhood.id) ? 'Already in Comparison' : 'Add to Compare'}
+                </button>
+                <button
+                  onClick={() => navigateToAreaDetails(selectedNeighborhood)}
+                  className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-all text-sm flex items-center justify-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Details
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Compare Button */}
           <button
             onClick={() => setIsDrawerOpen(true)}
             disabled={comparisonList.length === 0}
@@ -795,22 +986,20 @@ export default function RelocationMapPage() {
             Compare {comparisonList.length > 0 && `(${comparisonList.length})`}
           </button>
 
-          {/* Top Matches */}
           <div className="mt-8">
-            <h3 className="text-lg font-bold text-white mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-              Top Matches
-            </h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                Top Matches
+              </h3>
+              <span className="text-xs text-slate-400">Click labels for details</span>
+            </div>
             <div className="space-y-2">
               {sortedNeighborhoods.slice(0, 5).map((neighborhood, index) => (
-                <button
+                <div
                   key={neighborhood.id}
-                  onClick={() => {
-                    setSelectedNeighborhood(neighborhood);
-                    map.current?.flyTo(neighborhood.coordinates, 13);
-                  }}
-                  className="w-full p-3 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/50 rounded-lg transition-all text-left"
+                  className="p-3 bg-slate-800/50 border border-slate-700 rounded-lg transition-all hover:border-amber-500/50"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-900 font-bold flex items-center justify-center text-sm">
                         {index + 1}
@@ -819,13 +1008,30 @@ export default function RelocationMapPage() {
                     </div>
                     <span className="text-amber-500 font-bold">{calculateScore(neighborhood)}%</span>
                   </div>
-                </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedNeighborhood(neighborhood);
+                        map.current?.flyTo(neighborhood.coordinates, 13);
+                      }}
+                      className="flex-1 px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium rounded transition-all"
+                    >
+                      View on Map
+                    </button>
+                    <button
+                      onClick={() => navigateToAreaDetails(neighborhood)}
+                      className="flex-1 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-all flex items-center justify-center gap-1"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Details
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Toggle Button */}
         <button
           onClick={() => setIsSidebarOpen(false)}
           className="hidden lg:block absolute -right-12 top-1/2 -translate-y-1/2 p-3 bg-slate-900 border border-amber-500/30 rounded-r-xl shadow-xl hover:bg-slate-800 transition-all"
@@ -834,7 +1040,6 @@ export default function RelocationMapPage() {
         </button>
       </div>
 
-      {/* Sidebar Toggle (when closed) */}
       {!isSidebarOpen && (
         <button
           onClick={() => setIsSidebarOpen(true)}
@@ -844,7 +1049,6 @@ export default function RelocationMapPage() {
         </button>
       )}
 
-      {/* Map Container */}
       <div 
         ref={mapContainer} 
         className="absolute inset-0"
@@ -854,10 +1058,18 @@ export default function RelocationMapPage() {
         }}
       />
 
-      {/* Hover Tooltip */}
       {hoveredNeighborhood && (
         <div className="fixed top-4 right-4 z-30 p-4 bg-slate-900 border-2 border-amber-500 rounded-xl shadow-2xl max-w-xs pointer-events-none">
-          <h4 className="text-white font-bold text-lg mb-2">{hoveredNeighborhood.name}</h4>
+          <div className="flex justify-between items-start mb-2">
+            <h4 className="text-white font-bold text-lg">{hoveredNeighborhood.name}</h4>
+            <button
+              onClick={() => navigateToAreaDetails(hoveredNeighborhood)}
+              className="p-1 bg-amber-500 text-slate-900 rounded text-xs font-bold"
+              title="View Details"
+            >
+              →
+            </button>
+          </div>
           <div className="text-sm space-y-1">
             <div className="flex justify-between">
               <span className="text-slate-400">Safety:</span>
@@ -867,14 +1079,32 @@ export default function RelocationMapPage() {
               <span className="text-slate-400">Transit:</span>
               <span className="text-white font-semibold">{hoveredNeighborhood.metrics.transit}%</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Rent:</span>
+              <span className="text-white font-semibold">₹{hoveredNeighborhood.metrics.avgRent.toLocaleString()}</span>
+            </div>
           </div>
+          <p className="text-xs text-slate-400 mt-2">Click label for area details</p>
         </div>
       )}
 
-      {/* Comparison Drawer */}
       <ComparisonDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
 
-      {/* Styles */}
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-30 bg-slate-900/90 border border-amber-500/30 rounded-xl p-3 text-sm text-white">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-500/30 rounded"></div>
+            <span>Click</span>
+          </div>
+          <div className="text-slate-400">Select area</div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-amber-500 rounded"></div>
+            <span>Click label</span>
+          </div>
+          <div className="text-slate-400">View area details</div>
+        </div>
+      </div>
+
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
         
@@ -882,9 +1112,18 @@ export default function RelocationMapPage() {
           font-family: 'Montserrat', sans-serif;
         }
         
-        .neighborhood-label {
+        .custom-label-icon {
           background: none !important;
           border: none !important;
+        }
+        
+        .leaflet-marker-icon {
+          z-index: 1000 !important;
+        }
+        
+        .neighborhood-polygon {
+          cursor: pointer;
+          transition: fill 0.3s ease;
         }
         
         input[type="range"]::-webkit-slider-thumb {
@@ -918,6 +1157,19 @@ export default function RelocationMapPage() {
         input[type="range"]::-moz-range-thumb:hover {
           transform: scale(1.2);
           box-shadow: 0 4px 12px rgba(245, 158, 11, 0.6);
+        }
+        
+        /* Fix for Leaflet marker z-index */
+        .leaflet-pane > svg {
+          z-index: 200;
+        }
+        
+        .leaflet-pane > canvas {
+          z-index: 100;
+        }
+        
+        .leaflet-marker-pane {
+          z-index: 1000 !important;
         }
       `}</style>
     </div>
