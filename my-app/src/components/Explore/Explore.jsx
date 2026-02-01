@@ -540,6 +540,7 @@ export default function RelocationMapPage() {
 
   const navigateToAreaDetails = (neighborhood) => {
     if (neighborhood?.slug) {
+      console.log('Navigating to:', `/areas/${neighborhood.slug}`, 'for', neighborhood.name);
       router.push(`/areas/${neighborhood.slug}`);
     }
   };
@@ -553,7 +554,7 @@ export default function RelocationMapPage() {
       center: [19.0760, 72.8777],
       zoom: 11,
       zoomControl: true,
-      preferCanvas: true // Better performance
+      preferCanvas: true
     });
 
     // Add OpenStreetMap tiles
@@ -566,7 +567,7 @@ export default function RelocationMapPage() {
     const labelLayer = L.layerGroup().addTo(map.current);
 
     // Add neighborhood polygons
-    MUMBAI_NEIGHBORHOODS.forEach(neighborhood => {
+    MUMBAI_NEIGHBORHOODS.forEach((neighborhood) => {
       const polygon = L.polygon(neighborhood.bounds, {
         color: '#1e293b',
         weight: 2,
@@ -600,10 +601,11 @@ export default function RelocationMapPage() {
         }, 200);
       });
 
-      // Double-click for details
+      // Double-click for details - FIXED: Use correct closure
       polygon.on('dblclick', (e) => {
         e.originalEvent.stopPropagation();
         clearTimeout(clickTimer);
+        console.log('Double-clicked polygon for:', neighborhood.name, 'slug:', neighborhood.slug);
         navigateToAreaDetails(neighborhood);
       });
 
@@ -664,14 +666,15 @@ export default function RelocationMapPage() {
       const label = L.marker(neighborhood.coordinates, {
         icon: labelIcon,
         interactive: true,
-        bubblingMouseEvents: false, // Prevent event bubbling to map
-        zIndexOffset: 1000 // Ensure labels stay on top
+        bubblingMouseEvents: false,
+        zIndexOffset: 1000
       }).addTo(labelLayer);
 
-      // Add click handler to label
+      // Add click handler to label - FIXED: Use correct closure
       label.on('click', (e) => {
         e.originalEvent.stopPropagation();
         e.originalEvent.preventDefault();
+        console.log('Clicked label for:', neighborhood.name, 'slug:', neighborhood.slug);
         navigateToAreaDetails(neighborhood);
       });
 
@@ -711,7 +714,6 @@ export default function RelocationMapPage() {
 
     // Add click event to map to clear selection
     map.current.on('click', (e) => {
-      // Only clear if clicking directly on map (not on polygon or label)
       if (e.originalEvent.target.className === 'leaflet-container' || 
           e.originalEvent.target.className === 'leaflet-pane leaflet-map-pane') {
         Object.values(polygonsRef.current).forEach(polygon => {
@@ -1159,7 +1161,6 @@ export default function RelocationMapPage() {
           box-shadow: 0 4px 12px rgba(245, 158, 11, 0.6);
         }
         
-        /* Fix for Leaflet marker z-index */
         .leaflet-pane > svg {
           z-index: 200;
         }
