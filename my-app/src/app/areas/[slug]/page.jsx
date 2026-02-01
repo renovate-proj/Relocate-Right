@@ -1,4 +1,4 @@
-import AreaDetailPage from '@/components/Areas/Areas'
+import AreaDetailPage from '@/components/Areas/Areas_Detail'
 import React from 'react'
 
 const page = () => {
