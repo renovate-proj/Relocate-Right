@@ -2,87 +2,73 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaStar, FaChartBar, FaSearch, FaPlus, FaTrash, FaInfoCircle, FaExchangeAlt } from 'react-icons/fa';
-
-export const locationData = [
-    {
-      id: 1,
-      name: 'Austin, TX',
-      costOfLiving: 8.2,
-      jobProspects: 9.1,
-      education: 8.5,
-      healthcare: 8.0,
-      infrastructure: 8.7,
-      overall: 8.5,
-      description: 'Fast-growing tech hub with vibrant culture and warm climate. Known for its music scene and outdoor activities.',
-      image: 'austin',
-    },
-    {
-      id: 2,
-      name: 'Denver, CO',
-      costOfLiving: 7.8,
-      jobProspects: 8.3,
-      education: 8.2,
-      healthcare: 8.5,
-      infrastructure: 8.0,
-      overall: 8.2,
-      description: 'Mountain city with strong economy and outdoor lifestyle. High quality of life but increasing cost of living.',
-      image: 'denver',
-    },
-    {
-      id: 3,
-      name: 'Raleigh, NC',
-      costOfLiving: 7.2,
-      jobProspects: 8.7,
-      education: 9.0,
-      healthcare: 8.3,
-      infrastructure: 7.8,
-      overall: 8.2,
-      description: 'Part of the Research Triangle with top universities and growing tech sector. Affordable with mild climate.',
-      image: 'raleigh',
-    },
-    {
-      id: 4,
-      name: 'Portland, OR',
-      costOfLiving: 8.5,
-      jobProspects: 7.8,
-      education: 8.1,
-      healthcare: 8.7,
-      infrastructure: 8.4,
-      overall: 8.3,
-      description: 'Progressive city known for sustainability, food scene, and access to nature. Rainy climate but mild winters.',
-      image: 'portland',
-    },
-  ];
+import { useMapStore } from '@/lib/store';
+import { getLocations } from '@/lib/api';
 
 const ComparisonDashboard = () => {
-  const [selectedLocations, setSelectedLocations] = useState([locationData[0], locationData[1]]);
+  const [locations, setLocations] = useState([]);
+  const {
+    comparisonList: selectedLocations,
+    addToComparison,
+    removeFromComparison
+  } = useMapStore();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredLocations, setFilteredLocations] = useState(locationData);
-  const [activeMetric, setActiveMetric] = useState('overall');
+  const [filteredLocations, setFilteredLocations] = useState([]);
+  const [activeMetric, setActiveMetric] = useState('overall_score');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
+  const [loading, setLoading] = useState(true);
+
+  // Fetch locations
+  useEffect(() => {
+    async function fetchLocations() {
+      try {
+        const data = await getLocations();
+        // Standardize data structure to match Explore.jsx
+        const transformed = data.map(loc => ({
+          ...loc,
+          metrics: {
+            safety: (loc.safety_score || 0) * 10,
+            affordability: (loc.cost_of_living_score || 0) * 10,
+            transit: (loc.infrastructure_score || 0) * 10,
+            amenities: (loc.healthcare_score || 0) * 10,
+            schools: (loc.education_score || 0) * 10,
+            avgRent: 2000,
+            walkScore: 70
+          },
+          population: loc.population ? `${(loc.population / 1000000).toFixed(1)}M` : 'N/A'
+        }));
+        setLocations(transformed);
+        setFilteredLocations(transformed);
+        // Initial data sync if needed, but store handles persistence
+      } catch (error) {
+        console.error("Failed to fetch locations", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchLocations();
+  }, []);
 
   // Handle search
   useEffect(() => {
     if (searchTerm === '') {
-      setFilteredLocations(locationData);
+      setFilteredLocations(locations);
     } else {
-      const filtered = locationData.filter(location =>
+      const filtered = locations.filter(location =>
         location.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredLocations(filtered);
     }
-  }, [searchTerm]);
+  }, [searchTerm, locations]);
 
   // Add location to comparison
   const addLocation = (location) => {
-    if (selectedLocations.length < 4 && !selectedLocations.some(l => l.id === location.id)) {
-      setSelectedLocations([...selectedLocations, location]);
-    }
+    addToComparison(location);
   };
 
   // Remove location from comparison
   const removeLocation = (id) => {
-    setSelectedLocations(selectedLocations.filter(location => location.id !== id));
+    removeFromComparison(id);
   };
 
   // Sort locations
@@ -116,19 +102,20 @@ const ComparisonDashboard = () => {
       stars.push(
         <FaStar
           key={i}
-          className={i <= Math.round(rating) ? 'text-yellow-400' : 'text-gray-300'}
+          className={i <= Math.round(rating / 2) ? 'text-yellow-400' : 'text-gray-300'}
         />
       );
     }
     return <div className="flex">{stars}</div>;
   };
 
+
   // Render metric bar
   const renderMetricBar = (value) => {
     return (
       <div className="w-full bg-gray-200 rounded-full h-2.5">
-        <div 
-          className="bg-indigo-600 h-2.5 rounded-full" 
+        <div
+          className="bg-indigo-600 h-2.5 rounded-full"
           style={{ width: `${value * 10}%` }}
         ></div>
       </div>
@@ -137,38 +124,18 @@ const ComparisonDashboard = () => {
 
   // Metric labels
   const metricLabels = {
-    overall: 'Overall Rating',
-    costOfLiving: 'Cost of Living',
-    jobProspects: 'Job Prospects',
-    education: 'Education',
-    healthcare: 'Healthcare',
-    infrastructure: 'Infrastructure'
+    overall_score: 'Overall Rating',
+    cost_of_living_score: 'Cost of Living',
+    job_prospects_score: 'Job Prospects',
+    education_score: 'Education',
+    healthcare_score: 'Healthcare',
+    infrastructure_score: 'Infrastructure'
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center">
-                <div className="bg-indigo-600 w-8 h-8 rounded-lg"></div>
-                <span className="ml-2 text-xl font-bold text-gray-900">RelocateRight</span>
-              </div>
-            </div>
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="/" className="text-gray-700 hover:text-indigo-600">Home</a>
-              <a href="/comparecities" className="text-indigo-600 font-medium">Compare</a>
-              <a href="#" className="text-gray-700 hover:text-indigo-600">Resources</a>
-              <a href="#" className="text-gray-700 hover:text-indigo-600">Methodology</a>
-              <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
-                Sign Up
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -211,28 +178,28 @@ const ComparisonDashboard = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {selectedLocations.map(location => (
               <div key={location.id} className="border rounded-lg p-4 relative">
-                <button 
+                <button
                   onClick={() => removeLocation(location.id)}
                   className="absolute top-2 right-2 text-gray-400 hover:text-red-500 z-10"
                 >
                   <FaTrash />
                 </button>
-                <Link href={`/locationdetail?id=${location.id}`} passHref>
+                <Link href={`/areas/${location.slug}`} passHref>
                   <div className="cursor-pointer">
-                    <div className={`bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16 mb-3 ${location.image}`} />
+                    <div className={`bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16 mb-3 ${location.images?.[0]}`} />
                     <h3 className="font-medium text-gray-900">{location.name}</h3>
                     <div className="flex items-center mt-1">
-                      {renderStars(location.overall)}
-                      <span className="ml-2 text-sm font-medium text-gray-900">{location.overall}</span>
+                      {renderStars(location.overall_score)}
+                      <span className="ml-2 text-sm font-medium text-gray-900">{location.overall_score}</span>
                     </div>
                   </div>
                 </Link>
               </div>
             ))}
-            
+
             {selectedLocations.length < 4 && (
               <div className="border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center p-4 cursor-pointer hover:border-indigo-400 transition">
-                <div 
+                <div
                   className="text-center text-gray-500 hover:text-indigo-600"
                   onClick={() => addLocation(filteredLocations[0])}
                 >
@@ -251,17 +218,17 @@ const ComparisonDashboard = () => {
                 {filteredLocations
                   .filter(loc => !selectedLocations.some(selected => selected.id === loc.id))
                   .map(location => (
-                    <div 
-                      key={location.id} 
+                    <div
+                      key={location.id}
                       className="border rounded-lg p-3 flex items-center cursor-pointer hover:bg-indigo-50 transition"
                       onClick={() => addLocation(location)}
                     >
-                      <div className={`bg-gray-200 border-2 border-dashed rounded-xl w-10 h-10 mr-3 ${location.image}`} />
+                      <div className={`bg-gray-200 border-2 border-dashed rounded-xl w-10 h-10 mr-3 ${location.images?.[0]}`} />
                       <div>
                         <h4 className="font-medium text-gray-900">{location.name}</h4>
                         <div className="flex items-center">
-                          {renderStars(location.overall)}
-                          <span className="ml-1 text-xs font-medium text-gray-900">{location.overall}</span>
+                          {renderStars(location.overall_score)}
+                          <span className="ml-1 text-xs font-medium text-gray-900">{location.overall_score}</span>
                         </div>
                       </div>
                     </div>
@@ -277,11 +244,10 @@ const ComparisonDashboard = () => {
             {Object.keys(metricLabels).map(metric => (
               <button
                 key={metric}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-                  activeMetric === metric
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition ${activeMetric === metric
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
                 onClick={() => setActiveMetric(metric)}
               >
                 {metricLabels[metric]}
@@ -296,24 +262,24 @@ const ComparisonDashboard = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5"
                   >
                     Location
                   </th>
                   {getSortedLocations().map(location => (
-                    <th 
-                      key={location.id} 
-                      scope="col" 
+                    <th
+                      key={location.id}
+                      scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                       onClick={() => handleSort(activeMetric)}
                     >
                       <div className="flex items-center">
-                        <div className={`bg-gray-200 border-2 border-dashed rounded-xl w-10 h-10 mr-2 ${location.image}`} />
+                        <div className={`bg-gray-200 border-2 border-dashed rounded-xl w-10 h-10 mr-2 ${location.images?.[0]}`} />
                         {location.name}
                         <span className="ml-1">
-                          {sortConfig.key === activeMetric && 
+                          {sortConfig.key === activeMetric &&
                             (sortConfig.direction === 'ascending' ? '↑' : '↓')}
                         </span>
                       </div>
@@ -340,10 +306,10 @@ const ComparisonDashboard = () => {
                     </td>
                   ))}
                 </tr>
-                
+
                 {/* Detailed Metrics */}
-                {activeMetric === 'overall' && Object.keys(metricLabels)
-                  .filter(metric => metric !== 'overall')
+                {activeMetric === 'overall_score' && Object.keys(metricLabels)
+                  .filter(metric => metric !== 'overall_score')
                   .map(metric => (
                     <tr key={metric} className="bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 pl-10">
@@ -377,15 +343,15 @@ const ComparisonDashboard = () => {
                   <div>
                     <h3 className="text-xl font-bold text-gray-900">{location.name}</h3>
                     <div className="flex items-center mt-1">
-                      {renderStars(location.overall)}
-                      <span className="ml-2 text-sm font-medium text-gray-900">{location.overall} Overall</span>
+                      {renderStars(location.overall_score)}
+                      <span className="ml-2 text-sm font-medium text-gray-900">{location.overall_score} Overall</span>
                     </div>
                   </div>
                   <div className="flex space-x-2">
                     <button className="text-gray-400 hover:text-indigo-600">
                       <FaInfoCircle className="text-lg" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => removeLocation(location.id)}
                       className="text-gray-400 hover:text-red-500"
                     >
@@ -393,44 +359,44 @@ const ComparisonDashboard = () => {
                     </button>
                   </div>
                 </div>
-                
+
                 <p className="mt-4 text-gray-600">{location.description}</p>
-                
+
                 <div className="mt-6 grid grid-cols-2 gap-4">
                   <div>
                     <h4 className="text-sm font-medium text-gray-700">Cost of Living</h4>
                     <div className="flex items-center mt-1">
-                      <span className="text-lg font-bold text-gray-900 mr-2">{location.costOfLiving.toFixed(1)}</span>
-                      <div className="w-24">{renderMetricBar(location.costOfLiving)}</div>
+                      <span className="text-lg font-bold text-gray-900 mr-2">{location.cost_of_living_score?.toFixed(1)}</span>
+                      <div className="w-24">{renderMetricBar(location.cost_of_living_score)}</div>
                     </div>
                   </div>
                   <div>
                     <h4 className="text-sm font-medium text-gray-700">Job Prospects</h4>
                     <div className="flex items-center mt-1">
-                      <span className="text-lg font-bold text-gray-900 mr-2">{location.jobProspects.toFixed(1)}</span>
-                      <div className="w-24">{renderMetricBar(location.jobProspects)}</div>
+                      <span className="text-lg font-bold text-gray-900 mr-2">{location.job_prospects_score?.toFixed(1)}</span>
+                      <div className="w-24">{renderMetricBar(location.job_prospects_score)}</div>
                     </div>
                   </div>
                   <div>
                     <h4 className="text-sm font-medium text-gray-700">Education</h4>
                     <div className="flex items-center mt-1">
-                      <span className="text-lg font-bold text-gray-900 mr-2">{location.education.toFixed(1)}</span>
-                      <div className="w-24">{renderMetricBar(location.education)}</div>
+                      <span className="text-lg font-bold text-gray-900 mr-2">{location.education_score?.toFixed(1)}</span>
+                      <div className="w-24">{renderMetricBar(location.education_score)}</div>
                     </div>
                   </div>
                   <div>
                     <h4 className="text-sm font-medium text-gray-700">Infrastructure</h4>
                     <div className="flex items-center mt-1">
-                      <span className="text-lg font-bold text-gray-900 mr-2">{location.infrastructure.toFixed(1)}</span>
-                      <div className="w-24">{renderMetricBar(location.infrastructure)}</div>
+                      <span className="text-lg font-bold text-gray-900 mr-2">{location.infrastructure_score?.toFixed(1)}</span>
+                      <div className="w-24">{renderMetricBar(location.infrastructure_score)}</div>
                     </div>
                   </div>
                 </div>
-                
-                <Link href={`/locationdetail?id=${location.id}`} passHref>
-                    <button className="mt-6 w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition">
-                        View Detailed Report
-                    </button>
+
+                <Link href={`/areas/${location.slug}`} passHref>
+                  <button className="mt-6 w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition">
+                    View Detailed Report
+                  </button>
                 </Link>
               </div>
             </div>

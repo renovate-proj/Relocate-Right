@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import L from 'leaflet';
+// import L from 'leaflet'; // Dynamic import used instead
 import 'leaflet/dist/leaflet.css';
 import { create } from 'zustand';
-import { 
-  Search, 
-  ChevronLeft, 
+import {
+  Search,
+  ChevronLeft,
   ChevronRight,
   MapPin,
   Car,
@@ -18,363 +18,18 @@ import {
   Menu,
   ExternalLink
 } from 'lucide-react';
+import { getLocations } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
-// Mock Mumbai neighborhood data
-const MUMBAI_NEIGHBORHOODS = [
-  {
-    id: 1,
-    name: 'Bandra West',
-    slug: 'bandra-west',
-    coordinates: [19.0596, 72.8281],
-    bounds: [
-      [19.0496, 72.8181],
-      [19.0496, 72.8381],
-      [19.0696, 72.8381],
-      [19.0696, 72.8181],
-      [19.0496, 72.8181]
-    ],
-    metrics: {
-      safety: 85,
-      affordability: 45,
-      transit: 90,
-      amenities: 95,
-      schools: 88,
-      avgRent: 65000,
-      crimeRate: 'Low',
-      transitScore: 'Excellent',
-      walkScore: 92
-    },
-    description: 'A vibrant suburb known for its trendy cafes, nightlife, and proximity to the sea.',
-    population: 'Approx. 350,000',
-    landmarks: ['Bandra-Worli Sea Link', 'Mount Mary Church', 'Carter Road Promenade'],
-    popularResidentialAreas: ['Pali Hill', 'Union Park', 'Waroda Road'],
-    transportHubs: ['Bandra Station (Western Line)', 'Bandra Bus Depot'],
-    avgPropertyPrice: '₹4.5 - 6 Crores',
-    famousFor: ['Celebrity residences', 'Boutique cafes', 'Art galleries', 'Weekend markets']
-  },
-  {
-    id: 2,
-    name: 'Andheri East',
-    slug: 'andheri-east',
-    coordinates: [19.1136, 72.8697],
-    bounds: [
-      [19.1036, 72.8597],
-      [19.1036, 72.8797],
-      [19.1236, 72.8797],
-      [19.1236, 72.8597],
-      [19.1036, 72.8597]
-    ],
-    metrics: {
-      safety: 78,
-      affordability: 60,
-      transit: 85,
-      amenities: 82,
-      schools: 80,
-      avgRent: 48000,
-      crimeRate: 'Moderate',
-      transitScore: 'Very Good',
-      walkScore: 78
-    },
-    description: 'Commercial hub with excellent connectivity, corporate offices, and modern residential complexes.',
-    population: 'Approx. 450,000',
-    landmarks: ['Chhatrapati Shivaji International Airport', 'Saki Naka', 'Metro Station'],
-    popularResidentialAreas: ['Marol', 'Saki Naka', 'Chakala'],
-    transportHubs: ['Andheri Station (Western & Metro)', 'Airport Terminal'],
-    avgPropertyPrice: '₹2.5 - 4 Crores',
-    famousFor: ['Corporate offices', 'Industrial areas', 'Budget hotels', 'International airport proximity']
-  },
-  {
-    id: 3,
-    name: 'Powai',
-    slug: 'powai',
-    coordinates: [19.1176, 72.9050],
-    bounds: [
-      [19.1076, 72.8950],
-      [19.1076, 72.9150],
-      [19.1276, 72.9150],
-      [19.1276, 72.8950],
-      [19.1076, 72.8950]
-    ],
-    metrics: {
-      safety: 90,
-      affordability: 50,
-      transit: 70,
-      amenities: 88,
-      schools: 92,
-      avgRent: 55000,
-      crimeRate: 'Very Low',
-      transitScore: 'Good',
-      walkScore: 75
-    },
-    description: 'Prestigious educational and corporate hub with beautiful lakeside views and modern infrastructure.',
-    population: 'Approx. 250,000',
-    landmarks: ['Powai Lake', 'IIT Bombay', 'Hiranandani Gardens'],
-    popularResidentialAreas: ['Hiranandani Complex', 'L&T Colony', 'Tirandaz'],
-    transportHubs: ['Powai Metro Station', 'Kanjurmarg Station'],
-    avgPropertyPrice: '₹3.5 - 5 Crores',
-    famousFor: ['IIT Bombay', 'Tech parks', 'Luxury apartments', 'Lake view properties']
-  },
-  {
-    id: 4,
-    name: 'Colaba',
-    slug: 'colaba',
-    coordinates: [18.9067, 72.8147],
-    bounds: [
-      [18.8967, 72.8047],
-      [18.8967, 72.8247],
-      [18.9167, 72.8247],
-      [18.9167, 72.8047],
-      [18.8967, 72.8047]
-    ],
-    metrics: {
-      safety: 88,
-      affordability: 30,
-      transit: 75,
-      amenities: 90,
-      schools: 85,
-      avgRent: 85000,
-      crimeRate: 'Low',
-      transitScore: 'Good',
-      walkScore: 88
-    },
-    description: 'Historic peninsula area with colonial architecture, luxury boutiques, and waterfront views.',
-    population: 'Approx. 120,000',
-    landmarks: ['Gateway of India', 'Taj Mahal Palace Hotel', 'Colaba Causeway'],
-    popularResidentialAreas: ['Cuffe Parade', 'Apollo Bandar', 'Navy Nagar'],
-    transportHubs: ['CST Station', 'Colaba Bus Terminus'],
-    avgPropertyPrice: '₹6 - 10 Crores',
-    famousFor: ['Heritage buildings', 'Luxury hotels', 'Art galleries', 'Fine dining restaurants']
-  },
-  {
-    id: 5,
-    name: 'Malad West',
-    slug: 'malad-west',
-    coordinates: [19.1875, 72.8397],
-    bounds: [
-      [19.1775, 72.8297],
-      [19.1775, 72.8497],
-      [19.1975, 72.8497],
-      [19.1975, 72.8297],
-      [19.1775, 72.8297]
-    ],
-    metrics: {
-      safety: 75,
-      affordability: 70,
-      transit: 80,
-      amenities: 75,
-      schools: 78,
-      avgRent: 38000,
-      crimeRate: 'Moderate',
-      transitScore: 'Very Good',
-      walkScore: 70
-    },
-    description: 'Residential suburb with good amenities, shopping complexes, and growing infrastructure.',
-    population: 'Approx. 500,000',
-    landmarks: ['Malad Creek', 'Inorbit Mall', 'Orchid City'],
-    popularResidentialAreas: ['Kandivali Link Road', 'Evershine Nagar', 'Chincholi Bunder'],
-    transportHubs: ['Malad Station (Western Line)', 'Mindspace Junction'],
-    avgPropertyPrice: '₹1.8 - 3 Crores',
-    famousFor: ['Shopping malls', 'Affordable housing', 'Beach proximity', 'Educational institutes']
-  },
-  {
-    id: 6,
-    name: 'Lower Parel',
-    slug: 'lower-parel',
-    coordinates: [18.9956, 72.8311],
-    bounds: [
-      [18.9856, 72.8211],
-      [18.9856, 72.8411],
-      [19.0056, 72.8411],
-      [19.0056, 72.8211],
-      [18.9856, 72.8211]
-    ],
-    metrics: {
-      safety: 82,
-      affordability: 40,
-      transit: 92,
-      amenities: 85,
-      schools: 75,
-      avgRent: 72000,
-      crimeRate: 'Low',
-      transitScore: 'Excellent',
-      walkScore: 85
-    },
-    description: 'Transformed textile mill area now a prime commercial and residential hub with luxury developments.',
-    population: 'Approx. 150,000',
-    landmarks: ['High Street Phoenix', 'One International Centre', 'Palladium'],
-    popularResidentialAreas: ['Phoenix Mills Compound', 'Kamala Mills', 'Todi Mills'],
-    transportHubs: ['Lower Parel Station', 'Elphinstone Road Station'],
-    avgPropertyPrice: '₹5 - 8 Crores',
-    famousFor: ['Luxury shopping', 'Corporate headquarters', 'Fine dining', 'Nightlife']
-  },
-  {
-    id: 7,
-    name: 'Thane West',
-    slug: 'thane-west',
-    coordinates: [19.2183, 72.9781],
-    bounds: [
-      [19.2083, 72.9681],
-      [19.2083, 72.9881],
-      [19.2283, 72.9881],
-      [19.2283, 72.9681],
-      [19.2083, 72.9681]
-    ],
-    metrics: {
-      safety: 80,
-      affordability: 75,
-      transit: 75,
-      amenities: 78,
-      schools: 82,
-      avgRent: 32000,
-      crimeRate: 'Moderate',
-      transitScore: 'Good',
-      walkScore: 68
-    },
-    description: 'Rapidly developing area with good infrastructure, affordability, and growing commercial spaces.',
-    population: 'Approx. 1,200,000',
-    landmarks: ['Upvan Lake', 'Talao Pali', 'Viviana Mall'],
-    popularResidentialAreas: ['Hiranandani Estate', 'Waghbil', 'Kopri'],
-    transportHubs: ['Thane Station (Central Line)', 'Metro Station'],
-    avgPropertyPrice: '₹1.5 - 2.5 Crores',
-    famousFor: ['Lakes', 'Affordable luxury', 'Educational institutes', 'Shopping malls']
-  },
-  {
-    id: 8,
-    name: 'Worli',
-    slug: 'worli',
-    coordinates: [19.0176, 72.8169],
-    bounds: [
-      [19.0076, 72.8069],
-      [19.0076, 72.8269],
-      [19.0276, 72.8269],
-      [19.0276, 72.8069],
-      [19.0076, 72.8069]
-    ],
-    metrics: {
-      safety: 92,
-      affordability: 25,
-      transit: 88,
-      amenities: 93,
-      schools: 90,
-      avgRent: 95000,
-      crimeRate: 'Very Low',
-      transitScore: 'Excellent',
-      walkScore: 90
-    },
-    description: 'Premium residential and commercial area with sea-facing properties and high-end lifestyle.',
-    population: 'Approx. 100,000',
-    landmarks: ['Worli Sea Face', 'Nehru Centre', 'Worli Fort', 'Bandra-Worli Sea Link'],
-    popularResidentialAreas: ['Worli Sea Face', 'Babulnath', 'Atria Mall Area'],
-    transportHubs: ['Worli Naka', 'Sea Link Access'],
-    avgPropertyPrice: '₹8 - 15 Crores',
-    famousFor: ['Sea views', 'Celebrity homes', 'Corporate offices', 'Luxury apartments']
-  },
-  {
-    id: 9,
-    name: 'Goregaon East',
-    slug: 'goregaon-east',
-    coordinates: [19.1653, 72.8697],
-    bounds: [
-      [19.1553, 72.8597],
-      [19.1553, 72.8797],
-      [19.1753, 72.8797],
-      [19.1753, 72.8597],
-      [19.1553, 72.8597]
-    ],
-    metrics: {
-      safety: 77,
-      affordability: 65,
-      transit: 82,
-      amenities: 80,
-      schools: 79,
-      avgRent: 42000,
-      crimeRate: 'Moderate',
-      transitScore: 'Very Good',
-      walkScore: 72
-    },
-    description: 'Mixed residential and commercial area with film industry presence and green spaces.',
-    population: 'Approx. 350,000',
-    landmarks: ['Film City', 'Aarey Colony', 'Oberoi Mall'],
-    popularResidentialAreas: ['Oberoi Garden City', 'Aarey Colony', 'Goregaon Link Road'],
-    transportHubs: ['Goregaon Station (Western Line)', 'Metro Station'],
-    avgPropertyPrice: '₹2 - 3.5 Crores',
-    famousFor: ['Film City', 'Green spaces', 'Shopping malls', 'Affordable housing']
-  },
-  {
-    id: 10,
-    name: 'Juhu',
-    slug: 'juhu',
-    coordinates: [19.1075, 72.8267],
-    bounds: [
-      [19.0975, 72.8167],
-      [19.0975, 72.8367],
-      [19.1175, 72.8367],
-      [19.1175, 72.8167],
-      [19.0975, 72.8167]
-    ],
-    metrics: {
-      safety: 87,
-      affordability: 35,
-      transit: 78,
-      amenities: 88,
-      schools: 86,
-      avgRent: 78000,
-      crimeRate: 'Low',
-      transitScore: 'Good',
-      walkScore: 80
-    },
-    description: 'Beachfront suburb popular with Bollywood celebrities, offering luxury living and entertainment.',
-    population: 'Approx. 220,000',
-    landmarks: ['Juhu Beach', 'Prithvi Theatre', 'ISKCON Temple'],
-    popularResidentialAreas: ['Juhu Scheme', 'Juhu Tara Road', 'Gulmohar Road'],
-    transportHubs: ['Vile Parle Station', 'Juhu Aerodrome'],
-    avgPropertyPrice: '₹6 - 9 Crores',
-    famousFor: ['Beach promenade', 'Bollywood celebrities', 'Luxury hotels', 'Street food']
-  }
-];
-// Zustand Store
-const useMapStore = create((set) => ({
-  mapView: {
-    center: [19.0760, 72.8777],
-    zoom: 11
-  },
-  preferences: {
-    safety: 50,
-    affordability: 50,
-    transit: 50,
-    amenities: 50,
-    schools: 50
-  },
-  selectedNeighborhood: null,
-  comparisonList: [],
-  workLocation: null,
-  commuteMode: 'car',
-  commuteTime: 30,
-  
-  setMapView: (view) => set({ mapView: view }),
-  setPreference: (key, value) => set((state) => ({
-    preferences: { ...state.preferences, [key]: value }
-  })),
-  setSelectedNeighborhood: (neighborhood) => set({ selectedNeighborhood: neighborhood }),
-  addToComparison: (neighborhood) => set((state) => {
-    if (state.comparisonList.length >= 4) return state;
-    if (state.comparisonList.find(n => n.id === neighborhood.id)) return state;
-    return { comparisonList: [...state.comparisonList, neighborhood] };
-  }),
-  removeFromComparison: (neighborhoodId) => set((state) => ({
-    comparisonList: state.comparisonList.filter(n => n.id !== neighborhoodId)
-  })),
-  clearComparison: () => set({ comparisonList: [] }),
-  setWorkLocation: (location) => set({ workLocation: location }),
-  setCommuteMode: (mode) => set({ commuteMode: mode }),
-  setCommuteTime: (time) => set({ commuteTime: time })
-}));
+// Mock Mumbai neighborhood data - Removed in favor of Supabase data
+const MUMBAI_NEIGHBORHOODS = [];
+import { useMapStore } from '@/lib/store';
+import { useAuth } from '@/context/AuthContext';
 
 // Drawer Component
 const ComparisonDrawer = ({ isOpen, onClose }) => {
   const { comparisonList, removeFromComparison } = useMapStore();
-  
+
   if (!isOpen) return null;
 
   const metrics = [
@@ -389,30 +44,29 @@ const ComparisonDrawer = ({ isOpen, onClose }) => {
 
   const getWinner = (metricKey) => {
     if (comparisonList.length === 0) return null;
-    
+
     const isLowerBetter = metricKey === 'avgRent';
     let winner = comparisonList[0];
-    
+
     comparisonList.forEach(n => {
       const currentValue = n.metrics[metricKey];
       const winnerValue = winner.metrics[metricKey];
-      
+
       if (isLowerBetter) {
         if (currentValue < winnerValue) winner = n;
       } else {
         if (currentValue > winnerValue) winner = n;
       }
     });
-    
+
     return winner.id;
   };
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none">
-      <div 
-        className={`absolute inset-x-0 bottom-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-t-4 border-amber-500 shadow-2xl transform transition-transform duration-500 ease-out pointer-events-auto ${
-          isOpen ? 'translate-y-0' : 'translate-y-full'
-        }`}
+      <div
+        className={`absolute inset-x-0 bottom-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-t-4 border-amber-500 shadow-2xl transform transition-transform duration-500 ease-out pointer-events-auto ${isOpen ? 'translate-y-0' : 'translate-y-full'
+          }`}
         style={{ maxHeight: '75vh', borderTopLeftRadius: '24px', borderTopRightRadius: '24px' }}
       >
         <div className="relative h-full flex flex-col">
@@ -468,11 +122,10 @@ const ComparisonDrawer = ({ isOpen, onClose }) => {
                           {comparisonList.map(neighborhood => {
                             const isWinner = neighborhood.id === winnerId;
                             return (
-                              <td key={neighborhood.id} className={`py-4 px-4 text-center transition-all ${
-                                isWinner 
-                                  ? 'bg-amber-500/20 text-amber-300 font-bold scale-105' 
-                                  : 'text-slate-400'
-                              }`}>
+                              <td key={neighborhood.id} className={`py-4 px-4 text-center transition-all ${isWinner
+                                ? 'bg-amber-500/20 text-amber-300 font-bold scale-105'
+                                : 'text-slate-400'
+                                }`}>
                                 <div className="flex items-center justify-center gap-2">
                                   {isWinner && <TrendingUp className="w-4 h-4" />}
                                   {metric.format(neighborhood.metrics[metric.key])}
@@ -490,27 +143,17 @@ const ComparisonDrawer = ({ isOpen, onClose }) => {
           </div>
         </div>
       </div>
-      
-      <div 
-        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+
+      <div
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={onClose}
       />
     </div>
   );
 };
 
-// Custom Label Icon Class
-class CustomLabelIcon extends L.DivIcon {
-  createIcon(oldIcon) {
-    const div = super.createIcon(oldIcon);
-    div.style.pointerEvents = 'auto';
-    div.style.cursor = 'pointer';
-    div.style.zIndex = '1000';
-    return div;
-  }
-}
+// Custom Label Icon Class moved inside useEffect to avoid SSR issues
 
 // Main Component
 export default function RelocationMapPage() {
@@ -522,7 +165,7 @@ export default function RelocationMapPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [hoveredNeighborhood, setHoveredNeighborhood] = useState(null);
   const router = useRouter();
-  
+
   const {
     preferences,
     selectedNeighborhood,
@@ -545,97 +188,121 @@ export default function RelocationMapPage() {
     }
   };
 
+  const { user } = useAuth();
+  // Fetch locations from Supabase
+  const [locations, setLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const data = await getLocations();
+        // Transform data to match Explore component structure (0-100 scale)
+        const transformed = data.map(loc => ({
+          ...loc, // Preserve all original properties for Compare Dashboard
+          id: loc.id,
+          name: loc.name,
+          slug: loc.slug,
+          coordinates: [loc.lat || 19.0760, loc.lng || 72.8777], // Default to Mumbai center if missing
+          metrics: {
+            safety: (loc.safety_score || 0) * 10,
+            affordability: (loc.cost_of_living_score || 0) * 10,
+            transit: (loc.infrastructure_score || 0) * 10, // approximating transit with infrastructure
+            amenities: (loc.healthcare_score || 0) * 10, // approximating amenities
+            schools: (loc.education_score || 0) * 10,
+            avgRent: 2000, // Placeholder or parse from cost_breakdown
+            walkScore: 70 // Placeholder
+          },
+          description: loc.description,
+          population: loc.population ? `${(loc.population / 1000000).toFixed(1)}M` : 'N/A'
+        }));
+        setLocations(transformed);
+      } catch (error) {
+        console.error("Failed to load locations", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
   // Initialize Leaflet Map
   useEffect(() => {
-    if (map.current) return;
+    if (map.current || loading || locations.length === 0) return;
 
-    // Create map
-    map.current = L.map(mapContainer.current, {
-      center: [19.0760, 72.8777],
-      zoom: 11,
-      zoomControl: true,
-      preferCanvas: true
-    });
+    const initMap = async () => {
+      // Dynamic import
+      const L = (await import('leaflet')).default;
 
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19
-    }).addTo(map.current);
+      // Custom Label Icon Class
+      class CustomLabelIcon extends L.DivIcon {
+        createIcon(oldIcon) {
+          const div = super.createIcon(oldIcon);
+          div.style.pointerEvents = 'auto';
+          div.style.cursor = 'pointer';
+          div.style.zIndex = '1000';
+          return div;
+        }
+      }
 
-    // Create a separate layer group for labels to control z-index
-    const labelLayer = L.layerGroup().addTo(map.current);
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
 
-    // Add neighborhood polygons
-    MUMBAI_NEIGHBORHOODS.forEach((neighborhood) => {
-      const polygon = L.polygon(neighborhood.bounds, {
-        color: '#1e293b',
-        weight: 2,
-        fillColor: '#3b82f6',
-        fillOpacity: 0.3,
-        className: 'neighborhood-polygon'
+      // Create map centered on Mumbai
+      map.current = L.map(mapContainer.current, {
+        center: [19.0760, 72.8777],
+        zoom: 12,
+        zoomControl: true,
+        preferCanvas: true
+      });
+
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
       }).addTo(map.current);
 
-      // Single click handler with debounce
-      let clickTimer;
-      polygon.on('click', (e) => {
-        e.originalEvent.stopPropagation();
-        clearTimeout(clickTimer);
-        clickTimer = setTimeout(() => {
-          setSelectedNeighborhood(neighborhood);
-          map.current.flyTo(neighborhood.coordinates, 13);
-          
-          // Reset all polygons
-          Object.values(polygonsRef.current).forEach(p => {
-            p.setStyle({
-              fillColor: '#3b82f6',
-              fillOpacity: 0.3
-            });
-          });
-          
-          // Highlight selected
-          polygon.setStyle({
-            fillColor: '#f59e0b',
-            fillOpacity: 0.5
-          });
-        }, 200);
-      });
+      const labelLayer = L.layerGroup().addTo(map.current);
 
-      // Double-click for details - FIXED: Use correct closure
-      polygon.on('dblclick', (e) => {
-        e.originalEvent.stopPropagation();
-        clearTimeout(clickTimer);
-        console.log('Double-clicked polygon for:', neighborhood.name, 'slug:', neighborhood.slug);
-        navigateToAreaDetails(neighborhood);
-      });
+      // Add markers
+      locations.forEach((location) => {
+        // Use CircleMarker for cities
+        const marker = L.circleMarker(location.coordinates, {
+          radius: 10,
+          fillColor: '#3b82f6',
+          color: '#1e293b',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        }).addTo(map.current);
 
-      // Hover effects
-      polygon.on('mouseover', () => {
-        setHoveredNeighborhood(neighborhood);
-        if (!selectedNeighborhood || selectedNeighborhood.id !== neighborhood.id) {
-          polygon.setStyle({
-            fillColor: '#f59e0b',
-            fillOpacity: 0.6
-          });
-        }
-      });
+        marker.on('click', (e) => {
+          e.originalEvent.stopPropagation();
+          setSelectedNeighborhood(location);
+          map.current.flyTo(location.coordinates, 13); // Changed zoom from 6 to 13 for city level
 
-      polygon.on('mouseout', () => {
-        setHoveredNeighborhood(null);
-        if (!selectedNeighborhood || selectedNeighborhood.id !== neighborhood.id) {
-          polygon.setStyle({
-            fillColor: '#3b82f6',
-            fillOpacity: 0.3
-          });
-        }
-      });
+          // Visual feedback
+          marker.setStyle({ fillColor: '#f59e0b', radius: 15 });
+        });
 
-      polygonsRef.current[neighborhood.id] = polygon;
+        // Hover
+        marker.on('mouseover', () => {
+          setHoveredNeighborhood(location);
+          marker.setStyle({ fillColor: '#f59e0b' });
+        });
+        marker.on('mouseout', () => {
+          setHoveredNeighborhood(null);
+          if (selectedNeighborhood?.id !== location.id) {
+            marker.setStyle({ fillColor: '#3b82f6' });
+          }
+        });
 
-      // Create label as a custom divIcon with better styling
-      const labelDiv = document.createElement('div');
-      labelDiv.className = 'neighborhood-label';
-      labelDiv.innerHTML = `
+        // Labels
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'neighborhood-label';
+        labelDiv.innerHTML = `
         <div style="
           background: white;
           padding: 4px 10px;
@@ -646,106 +313,42 @@ export default function RelocationMapPage() {
           box-shadow: 0 3px 6px rgba(0,0,0,0.16);
           white-space: nowrap;
           border: 2px solid transparent;
-          transition: all 0.2s ease;
-          cursor: pointer;
-          user-select: none;
           font-family: 'Montserrat', sans-serif;
         ">
-          ${neighborhood.name}
+          ${location.name}
         </div>
       `;
 
-      // Create label using custom icon class
-      const labelIcon = new CustomLabelIcon({
-        html: labelDiv,
-        className: 'custom-label-icon',
-        iconSize: [100, 40],
-        iconAnchor: [50, 20]
-      });
-
-      const label = L.marker(neighborhood.coordinates, {
-        icon: labelIcon,
-        interactive: true,
-        bubblingMouseEvents: false,
-        zIndexOffset: 1000
-      }).addTo(labelLayer);
-
-      // Add click handler to label - FIXED: Use correct closure
-      label.on('click', (e) => {
-        e.originalEvent.stopPropagation();
-        e.originalEvent.preventDefault();
-        console.log('Clicked label for:', neighborhood.name, 'slug:', neighborhood.slug);
-        navigateToAreaDetails(neighborhood);
-      });
-
-      // Add hover effects to label
-      label.on('mouseover', (e) => {
-        e.originalEvent.stopPropagation();
-        const element = label.getElement();
-        if (element) {
-          const innerDiv = element.querySelector('div');
-          if (innerDiv) {
-            innerDiv.style.background = '#f59e0b';
-            innerDiv.style.color = '#1e293b';
-            innerDiv.style.transform = 'scale(1.1)';
-            innerDiv.style.boxShadow = '0 5px 15px rgba(245, 158, 11, 0.4)';
-            innerDiv.style.borderColor = '#f59e0b';
-          }
-        }
-      });
-
-      label.on('mouseout', (e) => {
-        e.originalEvent.stopPropagation();
-        const element = label.getElement();
-        if (element) {
-          const innerDiv = element.querySelector('div');
-          if (innerDiv) {
-            innerDiv.style.background = 'white';
-            innerDiv.style.color = '#1e293b';
-            innerDiv.style.transform = 'scale(1)';
-            innerDiv.style.boxShadow = '0 3px 6px rgba(0,0,0,0.16)';
-            innerDiv.style.borderColor = 'transparent';
-          }
-        }
-      });
-
-      labelsRef.current[neighborhood.id] = label;
-    });
-
-    // Add click event to map to clear selection
-    map.current.on('click', (e) => {
-      if (e.originalEvent.target.className === 'leaflet-container' || 
-          e.originalEvent.target.className === 'leaflet-pane leaflet-map-pane') {
-        Object.values(polygonsRef.current).forEach(polygon => {
-          polygon.setStyle({
-            fillColor: '#3b82f6',
-            fillOpacity: 0.3
-          });
+        const labelIcon = new CustomLabelIcon({
+          html: labelDiv,
+          className: 'custom-label-icon',
+          iconSize: [100, 40],
+          iconAnchor: [50, -10]
         });
-        setSelectedNeighborhood(null);
-      }
-    });
 
-    // Force labels to stay on top
-    setTimeout(() => {
-      Object.values(labelsRef.current).forEach(label => {
-        const element = label.getElement();
-        if (element) {
-          element.style.zIndex = '1000';
-          element.style.pointerEvents = 'auto';
-        }
+        const label = L.marker(location.coordinates, {
+          icon: labelIcon,
+          interactive: true,
+          zIndexOffset: 1000
+        }).addTo(labelLayer);
+
+        label.on('click', () => {
+          setSelectedNeighborhood(location);
+        });
+
       });
-    }, 100);
+    };
+
+    initMap();
 
     return () => {
       if (map.current) {
         map.current.remove();
         map.current = null;
       }
-      polygonsRef.current = {};
-      labelsRef.current = {};
     };
-  }, []);
+  }, [loading, locations]);
+
 
   // Update selected neighborhood styling
   useEffect(() => {
@@ -769,10 +372,10 @@ export default function RelocationMapPage() {
   const calculateScore = (neighborhood) => {
     const weights = preferences;
     const metrics = neighborhood.metrics;
-    
+
     const totalWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);
     if (totalWeight === 0) return 0;
-    
+
     const score = (
       (metrics.safety * weights.safety) +
       (metrics.affordability * weights.affordability) +
@@ -780,11 +383,11 @@ export default function RelocationMapPage() {
       (metrics.amenities * weights.amenities) +
       (metrics.schools * weights.schools)
     ) / totalWeight;
-    
+
     return Math.round(score);
   };
 
-  const sortedNeighborhoods = [...MUMBAI_NEIGHBORHOODS].sort((a, b) => 
+  const sortedNeighborhoods = [...locations].sort((a, b) =>
     calculateScore(b) - calculateScore(a)
   );
 
@@ -798,9 +401,8 @@ export default function RelocationMapPage() {
       </button>
 
       <div
-        className={`fixed top-0 left-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r-4 border-amber-500 shadow-2xl z-40 transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r-4 border-amber-500 shadow-2xl z-40 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
         style={{ width: '400px' }}
       >
         <div className="h-full flex flex-col p-6 overflow-y-auto">
@@ -859,74 +461,6 @@ export default function RelocationMapPage() {
             </div>
           </div>
 
-          <div className="mb-8">
-            <h3 className="text-lg font-bold text-white mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-              Commute Settings
-            </h3>
-            
-            <button
-              onClick={() => {
-                setWorkLocation([19.0760, 72.8777]);
-              }}
-              className="w-full mb-4 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              <MapPin className="w-5 h-5" />
-              {workLocation ? 'Update Work Location' : 'Set Work Location'}
-            </button>
-
-            {workLocation && (
-              <>
-                <div className="mb-4">
-                  <label className="text-slate-300 text-sm mb-2 block">Transport Mode</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { mode: 'car', icon: Car, label: 'Car' },
-                      { mode: 'bike', icon: Bike, label: 'Bike' },
-                      { mode: 'walk', icon: Footprints, label: 'Walk' }
-                    ].map(({ mode, icon: Icon, label }) => (
-                      <button
-                        key={mode}
-                        onClick={() => setCommuteMode(mode)}
-                        className={`p-3 rounded-lg border-2 transition-all ${
-                          commuteMode === mode
-                            ? 'bg-amber-500 border-amber-500 text-slate-900'
-                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-amber-500/50'
-                        }`}
-                      >
-                        <Icon className="w-5 h-5 mx-auto mb-1" />
-                        <span className="text-xs font-semibold">{label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-slate-300 text-sm">Commute Time</label>
-                    <span className="text-amber-500 font-bold">{commuteTime} min</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="15"
-                    max="60"
-                    step="15"
-                    value={commuteTime}
-                    onChange={(e) => setCommuteTime(parseInt(e.target.value))}
-                    className="w-full h-2 bg-slate-700 rounded-full appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${((commuteTime - 15) / 45) * 100}%, #334155 ${((commuteTime - 15) / 45) * 100}%, #334155 100%)`
-                    }}
-                  />
-                  <div className="flex justify-between text-xs text-slate-500 mt-1">
-                    <span>15min</span>
-                    <span>30min</span>
-                    <span>45min</span>
-                    <span>60min</span>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
 
           {selectedNeighborhood && (
             <div className="mb-6 p-4 bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/30 rounded-xl">
@@ -979,14 +513,93 @@ export default function RelocationMapPage() {
             </div>
           )}
 
-          <button
-            onClick={() => setIsDrawerOpen(true)}
-            disabled={comparisonList.length === 0}
-            className="w-full px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-slate-900 disabled:text-slate-500 font-bold rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg"
-          >
-            <BarChart3 className="w-5 h-5" />
-            Compare {comparisonList.length > 0 && `(${comparisonList.length})`}
-          </button>
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-white mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              Commute Settings
+            </h3>
+
+            <button
+              onClick={() => {
+                setWorkLocation([19.0760, 72.8777]);
+              }}
+              className="w-full mb-4 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              <MapPin className="w-5 h-5" />
+              {workLocation ? 'Update Work Location' : 'Set Work Location'}
+            </button>
+
+            <button
+              onClick={() => {
+                if (!user) {
+                  router.push('/login');
+                  return;
+                }
+                if (comparisonList.length > 0) {
+                  router.push('/compare');
+                }
+              }}
+              disabled={comparisonList.length === 0}
+              className="w-full mb-4 px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:from-slate-700 disabled:to-slate-700 disabled:cursor-not-allowed text-slate-900 disabled:text-slate-500 font-bold rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg"
+            >
+              <BarChart3 className="w-5 h-5" />
+              Compare {comparisonList.length > 0 && `(${comparisonList.length})`}
+            </button>
+
+            {workLocation && (
+              <>
+                <div className="mb-4">
+                  <label className="text-slate-300 text-sm mb-2 block">Transport Mode</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { mode: 'car', icon: Car, label: 'Car' },
+                      { mode: 'bike', icon: Bike, label: 'Bike' },
+                      { mode: 'walk', icon: Footprints, label: 'Walk' }
+                    ].map(({ mode, icon: Icon, label }) => (
+                      <button
+                        key={mode}
+                        onClick={() => setCommuteMode(mode)}
+                        className={`p-3 rounded-lg border-2 transition-all ${commuteMode === mode
+                          ? 'bg-amber-500 border-amber-500 text-slate-900'
+                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-amber-500/50'
+                          }`}
+                      >
+                        <Icon className="w-5 h-5 mx-auto mb-1" />
+                        <span className="text-xs font-semibold">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-slate-300 text-sm">Commute Time</label>
+                    <span className="text-amber-500 font-bold">{commuteTime} min</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="15"
+                    max="60"
+                    step="15"
+                    value={commuteTime}
+                    onChange={(e) => setCommuteTime(parseInt(e.target.value))}
+                    className="w-full h-2 bg-slate-700 rounded-full appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${((commuteTime - 15) / 45) * 100}%, #334155 ${((commuteTime - 15) / 45) * 100}%, #334155 100%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-slate-500 mt-1">
+                    <span>15min</span>
+                    <span>30min</span>
+                    <span>45min</span>
+                    <span>60min</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+
+
 
           <div className="mt-8">
             <div className="flex justify-between items-center mb-4">
@@ -1036,25 +649,25 @@ export default function RelocationMapPage() {
 
         <button
           onClick={() => setIsSidebarOpen(false)}
-          className="hidden lg:block absolute -right-12 top-1/2 -translate-y-1/2 p-3 bg-slate-900 border border-amber-500/30 rounded-r-xl shadow-xl hover:bg-slate-800 transition-all"
+          className="hidden lg:block absolute right-4 top-4 z-50 p-2 bg-slate-800/50 hover:bg-slate-700/50 rounded-lg transition-all"
         >
-          <ChevronLeft className="w-5 h-5 text-amber-500" />
+          <X className="w-5 h-5 text-slate-400 hover:text-white" />
         </button>
       </div>
 
       {!isSidebarOpen && (
         <button
           onClick={() => setIsSidebarOpen(true)}
-          className="hidden lg:block fixed left-0 top-1/2 -translate-y-1/2 z-30 p-3 bg-slate-900 border border-amber-500/30 rounded-r-xl shadow-xl hover:bg-slate-800 transition-all"
+          className="hidden lg:block fixed left-0 top-1/2 -translate-y-1/2 z-[5000] p-3 bg-slate-900 border-2 border-amber-500 rounded-r-xl shadow-2xl hover:bg-slate-800 transition-all"
         >
-          <ChevronRight className="w-5 h-5 text-amber-500" />
+          <ChevronRight className="w-6 h-6 text-amber-500" />
         </button>
       )}
 
-      <div 
-        ref={mapContainer} 
+      <div
+        ref={mapContainer}
         className="absolute inset-0"
-        style={{ 
+        style={{
           marginLeft: isSidebarOpen ? '400px' : '0',
           transition: 'margin-left 300ms ease-in-out'
         }}
@@ -1171,6 +784,24 @@ export default function RelocationMapPage() {
         
         .leaflet-marker-pane {
           z-index: 1000 !important;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+          background: #0f172a; 
+        }
+
+        ::-webkit-scrollbar-thumb {
+          background: #1e3a8a; 
+          border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+          background: #1e40af; 
         }
       `}</style>
     </div>

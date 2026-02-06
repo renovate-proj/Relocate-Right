@@ -2,37 +2,66 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FaStar, FaHome, FaBriefcase, FaGraduationCap, FaHeartbeat, FaSubway, FaChartBar, FaDollarSign, FaMapMarkerAlt, FaUserFriends, FaComments } from 'react-icons/fa';
-import { locationData as allLocationData } from '../Compare_Dashboard/Compare_dashborad';
+import Link from 'next/link';
+import { getLocationById, getReviews, submitReview } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const LocationDetailPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [expandedSection, setExpandedSection] = useState(null);
   const [locationData, setLocationData] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Review form state
+  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  const { user } = useAuth();
 
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const locationId = searchParams.get('id');
-    if (locationId) {
-      const data = allLocationData.find(loc => loc.id === parseInt(locationId));
-      setLocationData(data);
-    }
+    const fetchLocationData = async () => {
+      const locationId = searchParams.get('id');
+      if (locationId) {
+        setLoading(true);
+        try {
+          const data = await getLocationById(locationId);
+          console.log("Fetched location:", data) // Debug
+          if (data) {
+            setLocationData(data);
+            const locationReviews = await getReviews(locationId);
+            setReviews(locationReviews);
+          }
+        } catch (error) {
+          console.error("Failed to load location", error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    fetchLocationData();
   }, [searchParams]);
 
-  if (!locationData) {
-    return <div>Loading...</div>; // Or a more sophisticated loading state
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  // Mock data for Austin, TX (will be replaced by dynamic data)
+  if (!locationData) {
+    return <div className="min-h-screen flex items-center justify-center">Location not found</div>;
+  }
+
+  // TRANSFORM DB DATA TO UI FORMAT
+  // This adapter layer ensures the rest of the component works with minimal changes
   const staticData = {
-    state: "TX",
-    country: "United States",
     population: "2.2 million (metro)",
     avgTemp: "68°F",
     ratings: {
-        ...locationData.ratings,
-        safety: 8.3,
-        culture: 9.4
+      ...locationData.ratings,
+      safety: 8.3,
+      culture: 9.4
     },
     costBreakdown: {
       housing: 2300,
@@ -153,10 +182,10 @@ const LocationDetailPage = () => {
               </p>
               <div className="flex items-center mb-6">
                 <div className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm mr-3">
-                  {locationData.overall.toFixed(1)} Overall
+                  {locationData.overall_score?.toFixed(1)} Overall
                 </div>
                 <div className="text-white flex items-center">
-                  {renderStars(locationData.overall)}
+                  {renderStars(locationData.overall_score)}
                   <span className="ml-2">Excellent for relocation</span>
                 </div>
               </div>
@@ -171,7 +200,7 @@ const LocationDetailPage = () => {
                 </div>
                 <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg px-4 py-2 text-black flex items-center">
                   <FaDollarSign className="mr-2" />
-                  Cost of Living: {locationData.costOfLiving > 7.5 ? "High" : locationData.costOfLiving > 6 ? "Moderate" : "Affordable"}
+                  Cost of Living: {locationData.cost_of_living_score > 7.5 ? "High" : locationData.cost_of_living_score > 6 ? "Moderate" : "Affordable"}
                 </div>
               </div>
             </div>
@@ -193,11 +222,10 @@ const LocationDetailPage = () => {
             {['overview', 'cost', 'jobs', 'education', 'health', 'transport', 'reviews'].map((tab) => (
               <button
                 key={tab}
-                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
                 onClick={() => setActiveTab(tab)}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -304,7 +332,7 @@ const LocationDetailPage = () => {
                   </li>
                   <li className="flex items-center">
                     <FaHeartbeat className="text-indigo-600 mr-3" />
-                    <span>Healthcare Rating: <span className="font-medium">{locationData.healthcare.toFixed(1)}/10</span></span>
+                    <span>Healthcare Rating: <span className="font-medium">{locationData.healthcare_score?.toFixed(1)}/10</span></span>
                   </li>
                 </ul>
               </div>
@@ -400,7 +428,7 @@ const LocationDetailPage = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Cost of Living Index</h3>
                 <div className="flex items-center justify-center mb-4">
                   <div className="relative w-48 h-48 bg-indigo-50 rounded-full flex items-center justify-center">
-                    <div className="absolute text-3xl font-bold text-indigo-700">{locationData.costOfLiving.toFixed(1)}</div>
+                    <div className="absolute text-3xl font-bold text-indigo-700">{locationData.cost_of_living_score?.toFixed(1)}</div>
                     <div className="absolute bottom-4 text-gray-600 text-sm">out of 10</div>
                   </div>
                 </div>
@@ -505,7 +533,7 @@ const LocationDetailPage = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Job Prospects Rating</h3>
             <div className="flex items-center justify-center mb-4">
               <div className="relative w-48 h-48 bg-indigo-50 rounded-full flex items-center justify-center">
-                <div className="absolute text-3xl font-bold text-indigo-700">{locationData.jobProspects.toFixed(1)}</div>
+                <div className="absolute text-3xl font-bold text-indigo-700">{locationData.job_prospects_score?.toFixed(1)}</div>
                 <div className="absolute bottom-4 text-gray-600 text-sm">out of 10</div>
               </div>
             </div>
@@ -570,7 +598,7 @@ const LocationDetailPage = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Education Rating</h3>
             <div className="flex items-center justify-center mb-4">
               <div className="relative w-48 h-48 bg-indigo-50 rounded-full flex items-center justify-center">
-                <div className="absolute text-3xl font-bold text-indigo-700">{locationData.education.toFixed(1)}</div>
+                <div className="absolute text-3xl font-bold text-indigo-700">{locationData.education_score?.toFixed(1)}</div>
                 <div className="absolute bottom-4 text-gray-600 text-sm">out of 10</div>
               </div>
             </div>
@@ -631,7 +659,7 @@ const LocationDetailPage = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Healthcare Rating</h3>
             <div className="flex items-center justify-center mb-4">
               <div className="relative w-48 h-48 bg-indigo-50 rounded-full flex items-center justify-center">
-                <div className="absolute text-3xl font-bold text-indigo-700">{locationData.healthcare.toFixed(1)}</div>
+                <div className="absolute text-3xl font-bold text-indigo-700">{locationData.healthcare_score?.toFixed(1)}</div>
                 <div className="absolute bottom-4 text-gray-600 text-sm">out of 10</div>
               </div>
             </div>
@@ -697,7 +725,7 @@ const LocationDetailPage = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Infrastructure Rating</h3>
             <div className="flex items-center justify-center mb-4">
               <div className="relative w-48 h-48 bg-indigo-50 rounded-full flex items-center justify-center">
-                <div className="absolute text-3xl font-bold text-indigo-700">{locationData.infrastructure.toFixed(1)}</div>
+                <div className="absolute text-3xl font-bold text-indigo-700">{locationData.infrastructure_score?.toFixed(1)}</div>
                 <div className="absolute bottom-4 text-gray-600 text-sm">out of 10</div>
               </div>
             </div>
@@ -715,20 +743,20 @@ const LocationDetailPage = () => {
             <div className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Overall Satisfaction</h3>
               <div className="flex items-center justify-center mb-4">
-                <div className="text-5xl font-bold text-indigo-700 mr-4">{(locationData.overall * 0.5).toFixed(1)}</div> {/* Convert 10-scale to 5-scale for display */}
+                <div className="text-5xl font-bold text-indigo-700 mr-4">{(locationData.overall_score * 0.5).toFixed(1)}</div> {/* Convert 10-scale to 5-scale for display */}
                 <div>
-                  <div className="flex">{renderStars(locationData.overall)}</div>
+                  <div className="flex">{renderStars(locationData.overall_score)}</div>
                   <div className="text-gray-600 text-sm mt-1">Based on {staticData.reviews.length} reviews</div>
                 </div>
               </div>
 
               <div className="space-y-3">
                 {[
-                  { category: "Quality of Life", rating: staticData.ratings.culture * 0.5 + staticData.ratings.safety * 0.5 }, // Example combination
-                  { category: "Job Opportunities", rating: locationData.jobProspects * 0.5 },
-                  { category: "Cost of Living", rating: locationData.costOfLiving * 0.5 },
-                  { category: "Safety", rating: staticData.ratings.safety * 0.5 },
-                  { category: "Community", rating: (staticData.ratings.culture + staticData.ratings.safety) / 2 * 0.5 }, // Another example
+                  { category: "Quality of Life", rating: (locationData.culture_score * 0.5 + locationData.safety_score * 0.5) }, // Example combination
+                  { category: "Job Opportunities", rating: locationData.job_prospects_score * 0.5 },
+                  { category: "Cost of Living", rating: locationData.cost_of_living_score * 0.5 },
+                  { category: "Safety", rating: locationData.safety_score * 0.5 },
+                  { category: "Community", rating: (locationData.culture_score + locationData.safety_score) / 2 * 0.5 }, // Another example
                 ].map((item, index) => (
                   <div key={index}>
                     <div className="flex justify-between text-sm mb-1">
@@ -765,35 +793,66 @@ const LocationDetailPage = () => {
 
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Your Review</h3>
-            <form className="space-y-4">
-              <div>
-                <label htmlFor="review-rating" className="block text-sm font-medium text-gray-700 mb-1">Your Rating</label>
-                <div className="flex">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button key={star} type="button" className="text-2xl text-gray-300 hover:text-yellow-400 focus:outline-none">
-                      ★
-                    </button>
-                  ))}
+            {!user ? (
+              <div className="text-center py-4">
+                <p className="mb-2">Please log in to leave a review.</p>
+                <Link href="/login" className="text-indigo-600 hover:text-indigo-800 font-medium">Log In / Sign Up</Link>
+              </div>
+            ) : (
+              <form className="space-y-4" onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  await submitReview({
+                    locationId: locationData.id,
+                    rating: newReview.rating,
+                    comment: newReview.comment
+                  });
+                  setNewReview({ rating: 5, comment: '' });
+                  // Refresh reviews
+                  const updatedReviews = await getReviews(locationData.id);
+                  setReviews(updatedReviews);
+                  alert('Review submitted!');
+                } catch (err) {
+                  alert(err.message);
+                }
+              }}>
+                <div>
+                  <label htmlFor="review-rating" className="block text-sm font-medium text-gray-700 mb-1">Your Rating</label>
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setNewReview({ ...newReview, rating: star })}
+                        className={`text-2xl focus:outline-none ${star <= newReview.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label htmlFor="review-comment" className="block text-sm font-medium text-gray-700 mb-1">Your Review</label>
-                <textarea
-                  id="review-comment"
-                  rows="4"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Share your experience living in this area..."
-                ></textarea>
-              </div>
-              <div>
-                <button
-                  type="submit"
-                  className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition"
-                >
-                  Submit Review
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label htmlFor="review-comment" className="block text-sm font-medium text-gray-700 mb-1">Your Review</label>
+                  <textarea
+                    id="review-comment"
+                    rows="4"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Share your experience living in this area..."
+                    value={newReview.comment}
+                    onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                    required
+                  ></textarea>
+                </div>
+                <div>
+                  <button
+                    type="submit"
+                    className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition"
+                  >
+                    Submit Review
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
 
