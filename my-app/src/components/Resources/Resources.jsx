@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Search, Download, ChevronDown, ChevronUp, Check, FileText, Home, BookOpen, Heart, GraduationCap, FileCheck, Mail, Phone, MapPin } from 'lucide-react';
 
 const ResourcesPage = () => {
@@ -236,8 +237,8 @@ const ResourcesPage = () => {
                                     key={cat.id}
                                     onClick={() => setSelectedCategory(cat.id)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${selectedCategory === cat.id
-                                            ? 'bg-blue-600 text-white shadow-md'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                 >
                                     <Icon className="w-4 h-4" />
@@ -404,21 +405,18 @@ const ResourcesPage = () => {
                         <div className="bg-white rounded-xl shadow-lg p-6">
                             <h3 className="text-xl font-bold text-gray-900 mb-4">Quick Links</h3>
                             <div className="space-y-2">
-                                <a href="#" className="block text-blue-600 hover:text-blue-700 text-sm font-medium">
-                                    → Find Moving Companies
-                                </a>
-                                <a href="#" className="block text-blue-600 hover:text-blue-700 text-sm font-medium">
-                                    → Property Listings
-                                </a>
-                                <a href="#" className="block text-blue-600 hover:text-blue-700 text-sm font-medium">
-                                    → School Finder
-                                </a>
-                                <a href="#" className="block text-blue-600 hover:text-blue-700 text-sm font-medium">
-                                    → City Guides
-                                </a>
-                                <a href="#" className="block text-blue-600 hover:text-blue-700 text-sm font-medium">
-                                    → Cost Calculator
-                                </a>
+                                <Link href="/areas" className="block text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                    → Browse Areas
+                                </Link>
+                                <Link href="/compare" className="block text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                    → Compare Neighborhoods
+                                </Link>
+                                <Link href="/explore" className="block text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                    → Explore Map
+                                </Link>
+                                <Link href="/" className="block text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                    → Home
+                                </Link>
                             </div>
                         </div>
                     </div>
