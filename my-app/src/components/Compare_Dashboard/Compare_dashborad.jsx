@@ -13,6 +13,7 @@ const ComparisonDashboard = () => {
     removeFromComparison
   } = useMapStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const [filteredLocations, setFilteredLocations] = useState([]);
   const [activeMetric, setActiveMetric] = useState('overall_score');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
@@ -160,18 +161,31 @@ const ComparisonDashboard = () => {
             <h2 className="text-xl font-semibold text-gray-800 mb-4 md:mb-0">
               Selected Locations ({selectedLocations.length}/4)
             </h2>
-            <div className="relative w-full md:w-64">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaSearch className="text-gray-400" />
+
+            {showSearch && (
+              <div className="relative w-full md:w-64">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaSearch className="text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search locations..."
+                  className="block w-full pl-10 pr-8 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  autoFocus
+                />
+                <button
+                  onClick={() => {
+                    setShowSearch(false);
+                    setSearchTerm('');
+                  }}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                >
+                  <FaPlus className="transform rotate-45" />
+                </button>
               </div>
-              <input
-                type="text"
-                placeholder="Search locations..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+            )}
           </div>
 
           {/* Selected Locations */}
@@ -201,7 +215,7 @@ const ComparisonDashboard = () => {
               <div className="border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center p-4 cursor-pointer hover:border-indigo-400 transition">
                 <div
                   className="text-center text-gray-500 hover:text-indigo-600"
-                  onClick={() => addLocation(filteredLocations[0])}
+                  onClick={() => setShowSearch(true)}
                 >
                   <FaPlus className="mx-auto text-2xl mb-2" />
                   <span>Add Location</span>
@@ -211,17 +225,24 @@ const ComparisonDashboard = () => {
           </div>
 
           {/* Search Results */}
-          {searchTerm && (
+          {showSearch && (
             <div className="mt-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Search Results</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">
+                {searchTerm ? 'Search Results' : 'Suggested Locations'}
+              </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {filteredLocations
                   .filter(loc => !selectedLocations.some(selected => selected.id === loc.id))
+                  .slice(0, 8) // Limit suggestions
                   .map(location => (
                     <div
                       key={location.id}
                       className="border rounded-lg p-3 flex items-center cursor-pointer hover:bg-indigo-50 transition"
-                      onClick={() => addLocation(location)}
+                      onClick={() => {
+                        addLocation(location);
+                        setShowSearch(false);
+                        setSearchTerm('');
+                      }}
                     >
                       <div className={`bg-gray-200 border-2 border-dashed rounded-xl w-10 h-10 mr-3 ${location.images?.[0]}`} />
                       <div>

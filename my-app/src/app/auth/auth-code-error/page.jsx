@@ -19,9 +19,21 @@ export default function AuthCodeError() {
                     <h3 className="text-lg leading-6 font-medium text-gray-900 mb-2">
                         Authentication Error
                     </h3>
-                    <p className="text-sm text-gray-500 mb-6">
-                        {error || 'There was an error signing you in. The verification link may be invalid or expired.'}
-                    </p>
+                    <div className="text-sm text-gray-500 mb-6">
+                        {error === 'clock_skew' ? (
+                            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 text-left">
+                                <p className="font-bold text-yellow-700">System Time Error</p>
+                                <p className="text-yellow-600 mt-1">
+                                    Your computer's time appears to be incorrect (behind the server time). This prevents secure authentication.
+                                </p>
+                                <p className="text-yellow-600 mt-2 font-semibold">
+                                    Please synchronize your system clock and try again.
+                                </p>
+                            </div>
+                        ) : (
+                            <p>{error || 'There was an error signing you in. The verification link may be invalid or expired.'}</p>
+                        )}
+                    </div>
                     <div className="mt-6">
                         <Link
                             href="/login"

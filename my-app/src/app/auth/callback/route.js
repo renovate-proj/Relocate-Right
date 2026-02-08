@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function GET(request) {
@@ -8,13 +8,17 @@ export async function GET(request) {
     const next = searchParams.get('next') ?? '/'
 
     if (code) {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
-        )
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        const supabase = await createClient()
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
         if (!error) {
             return NextResponse.redirect(`${origin}${next}`)
+        }
+
+        // Check for clock skew
+        if (error.message.includes('future') || error.message.includes('skew')) {
+            console.error('Auth Error (Clock Skew):', error);
+            return NextResponse.redirect(`${origin}/auth/auth-code-error?error=clock_skew`)
         }
     }
 

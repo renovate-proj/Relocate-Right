@@ -1,4 +1,5 @@
 'use client';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { MapPin, TrendingUp, Home, IndianRupee, Star } from 'lucide-react';
 
@@ -128,7 +129,61 @@ const priceRanges = [
   'Luxury (> ₹80,000)'
 ];
 
-export default function AreasPage() {
+const AreasPage = () => {
+  const [selectedZone, setSelectedZone] = useState('All Zones');
+  const [selectedPrice, setSelectedPrice] = useState('All Prices');
+  const [sortBy, setSortBy] = useState('Overall Score');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'map'
+
+  const filteredNeighborhoods = useMemo(() => {
+    return neighborhoods.filter(area => {
+      // Zone Filter
+      if (selectedZone !== 'All Zones' && area.zone !== selectedZone) return false;
+
+      // Price Filter
+      if (selectedPrice !== 'All Prices') {
+        // Extract average rent from range string "₹35,000 - ₹80,000"
+        const rentValues = area.rentRange.replace(/[^0-9-]/g, '').split('-').map(Number);
+        const avgRent = (rentValues[0] + rentValues[1]) / 2;
+
+        if (selectedPrice === 'Budget (< ₹25,000)' && avgRent >= 25000) return false;
+        if (selectedPrice === 'Mid-Range (₹25,000 - ₹50,000)' && (avgRent < 25000 || avgRent > 50000)) return false;
+        if (selectedPrice === 'Premium (₹50,000 - ₹80,000)' && (avgRent < 50000 || avgRent > 80000)) return false;
+        if (selectedPrice === 'Luxury (> ₹80,000)' && avgRent <= 80000) return false;
+      }
+
+      return true;
+    }).sort((a, b) => {
+      switch (sortBy) {
+        case 'Overall Score':
+          return b.overallScore - a.overallScore;
+        case 'Safety Score':
+          return b.safetyScore - a.safetyScore;
+        case 'Transit Score':
+          return b.transitScore - a.transitScore;
+        case 'Price: Low to High':
+          const priceA = parseInt(a.rentRange.replace(/[^0-9]/g, '').split('0')[0]); // Simplified fetch
+          // Better regex for price extraction for sorting
+          const getAvg = (range) => {
+            const parts = range.replace(/[^0-9-]/g, '').split('-').map(Number);
+            return (parts[0] + parts[1]) / 2;
+          }
+          return getAvg(a.rentRange) - getAvg(b.rentRange);
+        case 'Price: High to Low':
+          const getAvgDesc = (range) => {
+            const parts = range.replace(/[^0-9-]/g, '').split('-').map(Number);
+            return (parts[0] + parts[1]) / 2;
+          }
+          return getAvgDesc(b.rentRange) - getAvgDesc(a.rentRange);
+        case 'Most Popular':
+          const popularityMap = { 'Very High': 3, 'High': 2, 'Medium': 1, 'Low': 0 };
+          return popularityMap[b.popularity] - popularityMap[a.popularity];
+        default:
+          return 0;
+      }
+    });
+  }, [selectedZone, selectedPrice, sortBy]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header Section */}
@@ -173,9 +228,13 @@ export default function AreasPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Zone
               </label>
-              <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <select
+                value={selectedZone}
+                onChange={(e) => setSelectedZone(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
                 {zones.map((zone) => (
-                  <option key={zone}>{zone}</option>
+                  <option key={zone} value={zone}>{zone}</option>
                 ))}
               </select>
             </div>
@@ -183,9 +242,13 @@ export default function AreasPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Price Range
               </label>
-              <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <select
+                value={selectedPrice}
+                onChange={(e) => setSelectedPrice(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
                 {priceRanges.map((range) => (
-                  <option key={range}>{range}</option>
+                  <option key={range} value={range}>{range}</option>
                 ))}
               </select>
             </div>
@@ -193,7 +256,11 @@ export default function AreasPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Sort By
               </label>
-              <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
                 <option>Overall Score</option>
                 <option>Safety Score</option>
                 <option>Transit Score</option>
@@ -210,109 +277,143 @@ export default function AreasPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">
-            {neighborhoods.length} Neighborhoods Found
+            {filteredNeighborhoods.length} Neighborhoods Found
           </h2>
-          <div className="flex gap-2">
-            <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-              Grid View
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              title="Grid View"
+            >
+              <Grid size={20} />
             </button>
-            <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-              Map View
+            <button
+              onClick={() => setViewMode('map')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'map' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              title="Map View"
+            >
+              <MapIcon size={20} />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {neighborhoods.map((area) => (
-            <Link
-              key={area.slug}
-              href={`/areas/${area.slug}`}
-              className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-            >
-              {/* Image */}
-              <div className="relative h-48 overflow-hidden">
-                <img
-                  src={area.image}
-                  alt={area.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-                <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-lg">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-bold text-gray-900">{area.overallScore}</span>
-                  </div>
-                </div>
-                <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {area.zone}
-                </div>
+        {/* Content */}
+        {viewMode === 'map' ? (
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden h-[600px] border border-gray-200">
+            <AreasMap locations={filteredNeighborhoods} />
+          </div>
+        ) : (
+          <>
+            {filteredNeighborhoods.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredNeighborhoods.map((area) => (
+                  <Link
+                    key={area.slug}
+                    href={`/areas/${area.slug}`}
+                    className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
+                  >
+                    {/* Image */}
+                    <div className="relative h-48 overflow-hidden">
+                      <img
+                        src={area.image}
+                        alt={area.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                      <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-lg">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="font-bold text-gray-900">{area.overallScore}</span>
+                        </div>
+                      </div>
+                      <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        {area.zone}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-5">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition">
+                        {area.name}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                        {area.shortDescription}
+                      </p>
+
+                      {/* Metrics */}
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                            <MapPin className="w-4 h-4 text-green-600" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500">Safety</div>
+                            <div className="font-semibold text-gray-900">{area.safetyScore}/10</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <TrendingUp className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500">Transit</div>
+                            <div className="font-semibold text-gray-900">{area.transitScore}/10</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Rent Range */}
+                      <div className="flex items-center gap-2 mb-4 p-3 bg-purple-50 rounded-lg">
+                        <IndianRupee className="w-5 h-5 text-purple-600" />
+                        <div>
+                          <div className="text-xs text-gray-600">Monthly Rent</div>
+                          <div className="font-bold text-purple-900">{area.rentRange}</div>
+                        </div>
+                      </div>
+
+                      {/* Highlights */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {area.highlights.slice(0, 3).map((highlight, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                          >
+                            {highlight}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Home className="w-4 h-4" />
+                          <span>{area.amenitiesCount} Amenities</span>
+                        </div>
+                        <span className="text-blue-600 font-medium group-hover:underline">
+                          View Details →
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
               </div>
-
-              {/* Content */}
-              <div className="p-5">
-                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition">
-                  {area.name}
-                </h3>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {area.shortDescription}
-                </p>
-
-                {/* Metrics */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-                      <MapPin className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Safety</div>
-                      <div className="font-semibold text-gray-900">{area.safetyScore}/10</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <TrendingUp className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Transit</div>
-                      <div className="font-semibold text-gray-900">{area.transitScore}/10</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Rent Range */}
-                <div className="flex items-center gap-2 mb-4 p-3 bg-purple-50 rounded-lg">
-                  <IndianRupee className="w-5 h-5 text-purple-600" />
-                  <div>
-                    <div className="text-xs text-gray-600">Monthly Rent</div>
-                    <div className="font-bold text-purple-900">{area.rentRange}</div>
-                  </div>
-                </div>
-
-                {/* Highlights */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {area.highlights.slice(0, 3).map((highlight, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
-                    >
-                      {highlight}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Home className="w-4 h-4" />
-                    <span>{area.amenitiesCount} Amenities</span>
-                  </div>
-                  <span className="text-blue-600 font-medium group-hover:underline">
-                    View Details →
-                  </span>
-                </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-lg">No neighborhoods found matching your filters.</div>
+                <button
+                  onClick={() => {
+                    setSelectedZone('All Zones');
+                    setSelectedPrice('All Prices');
+                  }}
+                  className="mt-4 text-blue-600 hover:underline font-medium"
+                >
+                  Clear Filters
+                </button>
               </div>
-            </Link>
-          ))}
-        </div>
+            )}
+          </>
+        )}
 
         {/* Load More */}
         <div className="text-center mt-12">
@@ -320,33 +421,34 @@ export default function AreasPage() {
             Load More Areas
           </button>
         </div>
-      </div>
-
-      {/* CTA Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Can't Find What You're Looking For?
-          </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Use our interactive map to explore all neighborhoods or get personalized recommendations based on your preferences.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/explore"
-              className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition"
-            >
-              Explore Map View
-            </Link>
-            <Link
-              href="/compare"
-              className="px-8 py-3 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white/10 transition"
-            >
-              Compare Areas
-            </Link>
+        {/* CTA Section */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl font-bold mb-4">
+              Can't Find What You're Looking For?
+            </h2>
+            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+              Use our interactive map to explore all neighborhoods or get personalized recommendations based on your preferences.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/explore"
+                className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition"
+              >
+                Explore Map View
+              </Link>
+              <Link
+                href="/compare"
+                className="px-8 py-3 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white/10 transition"
+              >
+                Compare Areas
+              </Link>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default AreasPage;

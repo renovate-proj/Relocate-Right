@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Star, TrendingUp, TrendingDown, Home, Train, ShoppingBag, Heart, Share2, Map, Shield, DollarSign, Bus, School, Hospital, TreePine, Utensils, Coffee, ChevronRight } from 'lucide-react';
+import { MapPin, Star, TrendingUp, TrendingDown, Home, Train, ShoppingBag, Heart, Share2, Map, Shield, DollarSign, Bus, School, Hospital, TreePine, Utensils, Coffee, ChevronRight, Users, Clock, ArrowRight, X } from 'lucide-react';
+import { useMapStore } from '@/lib/store';
 import { getLocationBySlug, getReviews, submitReview } from '@/lib/api';
 
 // Utility function to get color based on score
@@ -92,6 +93,11 @@ export default function AreaDetailPage({ slug }) {
   const [neighborhood, setNeighborhood] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSaved, setIsSaved] = useState(false);
+
+  // Comparison logic
+  const { addToComparison, comparisonList } = useMapStore();
+  const isInComparison = comparisonList.some(item => item.slug === slug);
 
   useEffect(() => {
     async function fetchData() {
@@ -244,15 +250,48 @@ export default function AreaDetailPage({ slug }) {
             </div>
 
             <div className="flex gap-3">
-              <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors">
-                <Heart className="w-4 h-4" />
-                <span className="font-medium">Save</span>
+              <button
+                onClick={() => {
+                  setIsSaved(!isSaved);
+                  alert(isSaved ? 'Removed from saved locations' : 'Added to saved locations');
+                }}
+                className={`px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors ${isSaved ? 'text-red-500 border-red-200 bg-red-50' : ''}`}
+              >
+                <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                <span className="font-medium">{isSaved ? 'Saved' : 'Save'}</span>
               </button>
-              <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors">
+              <button
+                onClick={async () => {
+                  try {
+                    if (navigator.share) {
+                      await navigator.share({
+                        title: neighborhood.name,
+                        text: `Check out ${neighborhood.name} on Relocation Assistant`,
+                        url: window.location.href,
+                      });
+                    } else {
+                      await navigator.clipboard.writeText(window.location.href);
+                      alert('Link copied to clipboard!');
+                    }
+                  } catch (err) {
+                    console.error('Error sharing:', err);
+                  }
+                }}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors"
+              >
                 <Share2 className="w-4 h-4" />
                 <span className="font-medium">Share</span>
               </button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors">
+              <button
+                onClick={() => {
+                  if (neighborhood.lat && neighborhood.lng) {
+                    window.open(`https://www.google.com/maps/search/?api=1&query=${neighborhood.lat},${neighborhood.lng}`, '_blank');
+                  } else {
+                    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(neighborhood.name + ', ' + neighborhood.location)}`, '_blank');
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors"
+              >
                 <Map className="w-4 h-4" />
                 <span className="font-medium">View on Map</span>
               </button>
@@ -545,8 +584,20 @@ export default function AreaDetailPage({ slug }) {
               <h3 className="text-2xl font-bold mb-2">Compare with Other Areas</h3>
               <p className="text-blue-100">Add {neighborhood.name} to your comparison list to see how it stacks up against other neighborhoods.</p>
             </div>
-            <button className="px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-semibold transition-colors whitespace-nowrap">
-              Add to Comparison
+            <button
+              onClick={() => {
+                if (!isInComparison) {
+                  addToComparison(neighborhood);
+                  alert(`${neighborhood.name} added to comparison list!`);
+                }
+              }}
+              disabled={isInComparison}
+              className={`px-6 py-3 rounded-lg font-semibold transition-colors whitespace-nowrap ${isInComparison
+                ? 'bg-green-100 text-green-700 cursor-default'
+                : 'bg-white text-blue-600 hover:bg-blue-50'
+                }`}
+            >
+              {isInComparison ? 'Added to Comparison' : 'Add to Comparison'}
             </button>
           </div>
         </div>
