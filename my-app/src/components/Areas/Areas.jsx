@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { MapPin, TrendingUp, Home, IndianRupee, Star,Grid,MapIcon } from 'lucide-react';
+import AreasMap from './AreasMap';
 
 // Mock data for neighborhoods
 const neighborhoods = [
@@ -303,6 +304,7 @@ const AreasPage = () => {
         {viewMode === 'map' ? (
           <div className="bg-white rounded-xl shadow-lg overflow-hidden h-[600px] border border-gray-200">
             <AreasMap locations={filteredNeighborhoods} />
+          
           </div>
         ) : (
           <>
