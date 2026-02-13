@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { MapPin, TrendingUp, Home, IndianRupee, Star } from 'lucide-react';
+import { MapPin, TrendingUp, Home, IndianRupee, Star,Grid,MapIcon } from 'lucide-react';
 
 // Mock data for neighborhoods
 const neighborhoods = [
