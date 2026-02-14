@@ -1,10 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 z-50 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -34,11 +37,11 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Auth Section */}
-          <div className="flex items-center space-x-4">
+          {/* Auth Section - Desktop */}
+          <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <div className="flex items-center space-x-4 ml-4">
-                <div className="hidden md:block text-right">
+                <div className="hidden lg:block text-right">
                   <p className="text-sm font-medium text-gray-900">{user.user_metadata?.full_name || 'User'}</p>
                 </div>
                 <div className="relative group">
@@ -63,20 +66,69 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="hidden md:inline-flex items-center justify-center px-6 py-2 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#1A56DB] to-[#7E3AF2] hover:opacity-90 transition-all duration-200 ml-4"
+                className="inline-flex items-center justify-center px-6 py-2 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#1A56DB] to-[#7E3AF2] hover:opacity-90 transition-all duration-200 ml-4"
               >
                 Sign In
               </Link>
             )}
           </div>
 
-          {/* Mobile Menu Icon */}
-          <button className="md:hidden p-2 ml-4">
-            <div className="w-6 h-0.5 bg-slate-700 mb-1.5"></div>
-            <div className="w-6 h-0.5 bg-slate-700 mb-1.5"></div>
-            <div className="w-6 h-0.5 bg-slate-700"></div>
+          {/* Mobile Menu Button */}
+          <button 
+            className="md:hidden p-2 ml-4"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            <div className={`w-6 h-0.5 bg-slate-700 mb-1.5 transition-transform duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></div>
+            <div className={`w-6 h-0.5 bg-slate-700 mb-1.5 transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`}></div>
+            <div className={`w-6 h-0.5 bg-slate-700 transition-transform duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></div>
           </button>
 
+        </div>
+
+        {/* Mobile Menu */}
+        <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${mobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="px-2 pt-2 pb-3 space-y-1 bg-white/95 backdrop-blur-md rounded-lg mt-2 shadow-lg">
+            {['Home', 'Explore', 'Areas', 'Methodology', 'Resources'].map((item) => (
+              <Link
+                key={item}
+                href={item === 'Home' ? '/' : `/${item.toLowerCase()}`}
+                className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-[#1A56DB] hover:bg-slate-50 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item}
+              </Link>
+            ))}
+            
+            {/* Mobile Auth */}
+            <div className="pt-4 border-t border-slate-200">
+              {user ? (
+                <div className="space-y-2">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium text-gray-900">{user.user_metadata?.full_name || 'User'}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-[#1A56DB] hover:bg-slate-50"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="block px-3 py-2 text-center rounded-full text-sm font-medium text-white bg-gradient-to-r from-[#1A56DB] to-[#7E3AF2] hover:opacity-90"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign In
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </nav>
