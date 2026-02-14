@@ -395,7 +395,7 @@ export default function RelocationMapPage() {
     <div className="relative h-screen w-screen overflow-hidden bg-slate-950">
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="lg:hidden fixed top-24 left-4 z-50 p-3 bg-slate-900 border border-amber-500/30 rounded-xl shadow-xl hover:bg-slate-800 transition-all"
+        className="lg:hidden fixed top-24 left-4 z-[1000] p-3 bg-slate-900 border border-amber-500/30 rounded-xl shadow-xl hover:bg-slate-800 transition-all"
       >
         <Menu className="w-6 h-6 text-amber-500" />
       </button>
